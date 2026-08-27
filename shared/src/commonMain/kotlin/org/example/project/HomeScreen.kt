@@ -57,10 +57,7 @@ fun HomeScreen(
     onNotificationClick: () -> Unit = {},
     onViewAllClick: () -> Unit = {},
     modifier: Modifier = Modifier,
-    viewModel: HomeViewModel = run {
-        val koin = org.koin.compose.getKoin()
-        androidx.lifecycle.viewmodel.compose.viewModel { koin.get() }
-    }
+    viewModel: HomeViewModel = org.koin.compose.koinInject()
 ) {
     // Refresh user data every time this screen appears (handles logout+login with different user)
     LaunchedEffect(Unit) {

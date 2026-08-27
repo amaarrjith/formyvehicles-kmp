@@ -68,10 +68,7 @@ fun VehicleStatusScreen(
     onBackClick: () -> Unit,
     regNumber: String? = null,
     modifier: Modifier = Modifier,
-    viewModel: VehicleStatusViewModel = run {
-        val koin = org.koin.compose.getKoin()
-        androidx.lifecycle.viewmodel.compose.viewModel { koin.get() }
-    }
+    viewModel: VehicleStatusViewModel = org.koin.compose.koinInject()
 ) {
     LaunchedEffect(regNumber) {
         if (!regNumber.isNullOrBlank()) {

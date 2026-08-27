@@ -56,10 +56,7 @@ fun OtpVerificationScreen(
     onResendClick: () -> Unit,
     onBackClick: () -> Unit,
     modifier: Modifier = Modifier,
-    viewModel: OtpVerificationViewModel = run {
-        val koin = org.koin.compose.getKoin()
-        androidx.lifecycle.viewmodel.compose.viewModel { koin.get() }
-    }
+    viewModel: OtpVerificationViewModel = org.koin.compose.koinInject()
 ) {
     val focusRequester1 = remember { FocusRequester() }
     val focusRequester2 = remember { FocusRequester() }

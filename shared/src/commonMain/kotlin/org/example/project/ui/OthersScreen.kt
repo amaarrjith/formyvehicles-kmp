@@ -79,10 +79,7 @@ import org.koin.compose.getKoin
 fun OthersScreen(
     onLogoutClick: () -> Unit,
     modifier: Modifier = Modifier,
-    viewModel: OthersViewModel = run {
-        val koin = getKoin()
-        viewModel { koin.get<OthersViewModel>() }
-    }
+    viewModel: OthersViewModel = org.koin.compose.koinInject()
 ) {
     val address = viewModel.userAddress
     val isLoading = viewModel.isLoading

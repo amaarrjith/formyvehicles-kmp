@@ -34,10 +34,7 @@ fun MyVehiclesScreen(
     onBackClick: () -> Unit,
     onVehicleClick: (Vehicle) -> Unit,
     modifier: Modifier = Modifier,
-    viewModel: HomeViewModel = run {
-        val koin = org.koin.compose.getKoin()
-        androidx.lifecycle.viewmodel.compose.viewModel { koin.get() }
-    }
+    viewModel: HomeViewModel = org.koin.compose.koinInject()
 ) {
     LaunchedEffect(Unit) {
         viewModel.refreshUser()

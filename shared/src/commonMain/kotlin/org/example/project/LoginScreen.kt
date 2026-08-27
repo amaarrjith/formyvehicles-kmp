@@ -66,14 +66,8 @@ fun LoginScreen(
     onNavigateToSignUp: () -> Unit,
     onLoginSuccess: () -> Unit,
     modifier: Modifier = Modifier,
-    viewModel: LoginViewModel = run {
-        val koin = org.koin.compose.getKoin()
-        androidx.lifecycle.viewmodel.compose.viewModel { koin.get() }
-    },
-    phoneViewModel: PhoneNumberViewModel = run {
-        val koin = org.koin.compose.getKoin()
-        androidx.lifecycle.viewmodel.compose.viewModel { koin.get() }
-    }
+    viewModel: LoginViewModel = org.koin.compose.koinInject(),
+    phoneViewModel: PhoneNumberViewModel = org.koin.compose.koinInject()
 ) {
     val focusManager = LocalFocusManager.current
     val selectedCountry by phoneViewModel.selectedCountry.collectAsState()
