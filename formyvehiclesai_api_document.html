@@ -1,0 +1,627 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>ForMyVehiclesAI Api Document</title>
+<style>
+    body {
+        font-family: Arial, Helvetica, sans-serif;
+        line-height: 1.6;
+        color: #333333;
+        margin: 40px;
+        background-color: #ffffff;
+    }
+    h1 {
+        font-size: 26px;
+        color: #111111;
+        border-bottom: 2px solid #4285f4;
+        padding-bottom: 8px;
+        margin-bottom: 20px;
+    }
+    h2 {
+        font-size: 20px;
+        color: #1a73e8;
+        margin-top: 30px;
+        margin-bottom: 10px;
+    }
+    .base-url {
+        font-size: 16px;
+        font-weight: bold;
+        background-color: #f1f3f4;
+        padding: 10px 15px;
+        border-radius: 4px;
+        margin-bottom: 20px;
+        font-family: monospace;
+    }
+    .headers-box {
+        background-color: #f8f9fa;
+        border-left: 4px solid #4285f4;
+        padding: 12px 20px;
+        margin-bottom: 20px;
+    }
+    .headers-box ul {
+        margin: 0;
+        padding-left: 20px;
+    }
+    .headers-box li {
+        font-family: monospace;
+        margin-bottom: 4px;
+    }
+    .note-box {
+        background-color: #fef7e0;
+        border: 1px solid #fce8e6;
+        padding: 10px 15px;
+        border-radius: 4px;
+        font-size: 14px;
+        margin-bottom: 20px;
+    }
+    pre {
+        background-color: #f8f9fa;
+        border: 1px solid #dadce0;
+        border-radius: 4px;
+        padding: 12px;
+        font-family: Consolas, "Courier New", monospace;
+        font-size: 13px;
+        white-space: pre-wrap;
+        word-break: break-word;
+    }
+    table {
+        width: 100%;
+        border-collapse: collapse;
+        margin-bottom: 35px;
+        background-color: #ffffff;
+        box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+    }
+    th, td {
+        border: 1px solid #dcdcdc;
+        padding: 12px 15px;
+        text-align: left;
+        vertical-align: top;
+    }
+    th {
+        background-color: #f1f3f4;
+        font-weight: bold;
+        width: 18%;
+        color: #202124;
+    }
+    td {
+        color: #3c4043;
+    }
+    .status-done {
+        color: #137333;
+        font-weight: bold;
+        background-color: #e6f4ea;
+        display: inline-block;
+        padding: 2px 8px;
+        border-radius: 4px;
+    }
+</style>
+</head>
+<body>
+
+<h1>ForMyVehiclesAI Api Document</h1>
+
+<div class="base-url">
+    Api Base Url:- https://api.formyvehicles.ai/api/v1
+</div>
+
+<h2>Header parameters:</h2>
+<div class="headers-box">
+    <ul>
+        <li><strong>X-Authorization</strong>:- JWT token</li>
+        <li><strong>X-Device-Type</strong>:- 1 - Android , 2 - IOS</li>
+        <li><strong>X-Device-Token</strong>:- device push token</li>
+        <li><strong>X-Language</strong>:- 1 - en, 2 - ar</li>
+        <li><strong>X-Timestamp</strong> :- 12355665767 (in millis)</li>
+        <li><strong>X-Signature</strong> :- (HmacSHA1 Signature)</li>
+        <li><strong>User-Agent</strong> :- {"buildNumber":1,"buildName":"1.0","deviceModel":"Mi A1"}</li>
+    </ul>
+</div>
+
+<div class="note-box">
+    <strong>NOTE:</strong> Refer this link for errorCode handling: <a href="https://feedonomics.com/amazon-feed-error-codes/" target="_blank">https://feedonomics.com/amazon-feed-error-codes/</a>
+</div>
+
+<h2>JSON Object and Array Handling Instructions</h2>
+<p>
+    With value:- <code>user:{id,name}</code> , without value:- <code>user: null</code><br>
+    With value:- <code>vehicles:[{registrationNumber,brand}]</code> , without value:- <code>vehicles: null</code>
+</p>
+
+<h2>Failure Response:-</h2>
+<pre>{
+  "hasError": true,
+  "errorCode": 2020,
+  "message": "Unauthorized access",
+  "debugMessage": "Invalid Token",
+  "response": null
+}</pre>
+
+<pre>{
+  "hasError": true,
+  "errorCode": 1001,
+  "message": "Something wrong with data",
+  "debugMessage": "Parameter missing (mobileNumber)",
+  "response": null
+}</pre>
+
+<hr style="border: none; border-top: 1px solid #e0e0e0; margin: 40px 0;">
+
+<h2>1. User Registration Api:-</h2>
+<table>
+    <tr><th>Api Name</th><td>Registration</td></tr>
+    <tr><th>Method</th><td>POST</td></tr>
+    <tr><th>URL</th><td>user/registration</td></tr>
+    <tr><th>Params</th><td><pre>{
+  "name": "Krish Maitreyi",
+  "state": "Kerala",
+  "countryCode": "+91",
+  "mobileNumber": "8921731641",
+  "agreedTerms": true
+}</pre></td></tr>
+    <tr><th>Result</th><td><pre>{
+  "hasError": false,
+  "errorCode": -1,
+  "message": "Success",
+  "response": {
+    "tempUserId": 12,
+    "mobileNumber": "8921731641",
+    "countryCode": "+91"
+  }
+}</pre></td></tr>
+    <tr><th>Status</th><td><span class="status-done">Done</span></td></tr>
+    <tr><th>Comments</th><td>tempUserId is the primary key of the temporary user table.<br>Sends 4-digit OTP to user's mobile number.</td></tr>
+</table>
+
+<h2>2. User Login / Send OTP Api:-</h2>
+<table>
+    <tr><th>Api Name</th><td>Login Send OTP</td></tr>
+    <tr><th>Method</th><td>POST</td></tr>
+    <tr><th>URL</th><td>user/login</td></tr>
+    <tr><th>Params</th><td><pre>{
+  "countryCode": "+91",
+  "mobileNumber": "8921731641"
+}</pre></td></tr>
+    <tr><th>Result</th><td><pre>{
+  "hasError": false,
+  "errorCode": -1,
+  "message": "Success",
+  "response": {
+    "mobileNumber": "8921731641",
+    "otpExpiresInSeconds": 120,
+    "isRegistered": true
+  }
+}</pre></td></tr>
+    <tr><th>Status</th><td><span class="status-done">Done</span></td></tr>
+    <tr><th>Comments</th><td>If mobile number is not registered, backend returns hasError: true, errorCode: 1004, message: "Mobile number is not registered. Please sign up."</td></tr>
+</table>
+
+<h2>3. Verify OTP Api:-</h2>
+<table>
+    <tr><th>Api Name</th><td>Verify OTP</td></tr>
+    <tr><th>Method</th><td>POST</td></tr>
+    <tr><th>URL</th><td>user/verify-otp</td></tr>
+    <tr><th>Params</th><td><pre>{
+  "countryCode": "+91",
+  "mobileNumber": "8921731641",
+  "otp": "1234"
+}</pre></td></tr>
+    <tr><th>Result</th><td><pre>{
+  "hasError": false,
+  "errorCode": -1,
+  "message": "Success",
+  "response": {
+    "userId": 1,
+    "uuid": "277414414b4a41eebd0a9975f7785ae3",
+    "user": {
+      "userId": 1,
+      "userType": 1,
+      "name": "Krish Maitreyi",
+      "mobileNumber": "8921731641",
+      "countryCode": "+91",
+      "state": "Kerala"
+    },
+    "auth": {
+      "accessToken": "eyJhbGciOiJKV1QiLC...",
+      "refreshToken": "d9f8e7d6c5b4a3...",
+      "tokenExpiryTime": "86400000"
+    }
+  }
+}</pre></td></tr>
+    <tr><th>Status</th><td><span class="status-done">Done</span></td></tr>
+    <tr><th>Comments</th><td>Hardcoded client mock 0000 is replaced by server-side SMS OTP validation logic.</td></tr>
+</table>
+
+<h2>4. Edit Profile Api:-</h2>
+<table>
+    <tr><th>Api Name</th><td>Edit Profile</td></tr>
+    <tr><th>Method</th><td>POST</td></tr>
+    <tr><th>URL</th><td>user/profile/edit</td></tr>
+    <tr><th>Params</th><td><pre>{
+  "name": "Krish Maitreyi",
+  "state": "Kerala",
+  "profileImage": ""
+}</pre></td></tr>
+    <tr><th>Result</th><td><pre>{
+  "hasError": false,
+  "errorCode": -1,
+  "message": "Success",
+  "response": {
+    "userId": 1,
+    "name": "Krish Maitreyi",
+    "mobileNumber": "8921731641",
+    "state": "Kerala",
+    "profileImage": ""
+  }
+}</pre></td></tr>
+    <tr><th>Status</th><td><span class="status-done">Done</span></td></tr>
+    <tr><th>Comments</th><td>Updates logged-in user profile details.</td></tr>
+</table>
+
+<h2>5. Generic User Check / Refresh Session Api:-</h2>
+<table>
+    <tr><th>Api Name</th><td>Generic User Check</td></tr>
+    <tr><th>Method</th><td>POST</td></tr>
+    <tr><th>URL</th><td>generic/user-check</td></tr>
+    <tr><th>Params</th><td><pre>{
+  "uuid": "277414414b4a41eebd0a9975f7785ae3"
+}</pre></td></tr>
+    <tr><th>Result</th><td><pre>{
+  "hasError": false,
+  "errorCode": -1,
+  "message": "Success",
+  "response": {
+    "uuid": "277414414b4a41eebd0a9975f7785ae3",
+    "userId": 1,
+    "isGuestUser": false,
+    "guestDetails": null,
+    "userDetails": {
+      "notificationUnReadCount": 2,
+      "vehicleCount": 2
+    }
+  }
+}</pre></td></tr>
+    <tr><th>Status</th><td><span class="status-done">Done</span></td></tr>
+    <tr><th>Comments</th><td>userDetails key is available for real user. For guest user isGuestUser = true and userDetails can be null.</td></tr>
+</table>
+
+<h2>6. Get Country List Api:-</h2>
+<table>
+    <tr><th>Api Name</th><td>Get Country List</td></tr>
+    <tr><th>Method</th><td>GET</td></tr>
+    <tr><th>URL</th><td>master/country-list</td></tr>
+    <tr><th>Params</th><td><pre>{}</pre></td></tr>
+    <tr><th>Result</th><td><pre>{
+  "hasError": false,
+  "errorCode": -1,
+  "message": "Success",
+  "response": {
+    "countries": [
+      {
+        "name": "India",
+        "isoCode": "IN",
+        "flag": "🇮🇳",
+        "dialCode": "+91"
+      },
+      {
+        "name": "United States",
+        "isoCode": "US",
+        "flag": "🇺🇸",
+        "dialCode": "+1"
+      }
+    ]
+  }
+}</pre></td></tr>
+    <tr><th>Status</th><td><span class="status-done">Done</span></td></tr>
+    <tr><th>Comments</th><td>Returns complete country master data to replace third-party https://countries.dev/countries.</td></tr>
+</table>
+
+<h2>7. Get Vehicle Metadata Api:-</h2>
+<table>
+    <tr><th>Api Name</th><td>Get Vehicle Metadata</td></tr>
+    <tr><th>Method</th><td>GET</td></tr>
+    <tr><th>URL</th><td>master/vehicle-metadata</td></tr>
+    <tr><th>Params</th><td><pre>{}</pre></td></tr>
+    <tr><th>Result</th><td><pre>{
+  "hasError": false,
+  "errorCode": -1,
+  "message": "Success",
+  "response": {
+    "vehicleTypes": ["Car", "Bike"],
+    "brands": ["Maruthi Suzuki", "Hero Honda", "Hyundai", "Tata", "Honda"],
+    "fuelTypes": ["Petrol", "Diesel", "Electric", "Hybrid"],
+    "gearTypes": ["Manual", "Automatic"],
+    "vehicleColors": ["Red", "White", "Black", "Silver", "Blue", "Grey", "Yellow", "Green", "Orange", "Brown"],
+    "vehicleCategories": ["Hatchback", "Sedan", "SUV", "MUV", "Coupe", "Convertible", "Pickup Truck", "Scooter", "Motorcycle", "EV"],
+    "seatingCapacities": ["2 Seater", "4 Seater", "5 Seater", "6 Seater", "7 Seater", "8+ Seater"]
+  }
+}</pre></td></tr>
+    <tr><th>Status</th><td><span class="status-done">Done</span></td></tr>
+    <tr><th>Comments</th><td>Dynamic metadata dropdown options for Add New Vehicle bottom sheet.</td></tr>
+</table>
+
+<h2>8. Get Models by Brand Api:-</h2>
+<table>
+    <tr><th>Api Name</th><td>Get Models by Brand</td></tr>
+    <tr><th>Method</th><td>POST</td></tr>
+    <tr><th>URL</th><td>master/brand-models</td></tr>
+    <tr><th>Params</th><td><pre>{
+  "brandName": "Maruthi Suzuki"
+}</pre></td></tr>
+    <tr><th>Result</th><td><pre>{
+  "hasError": false,
+  "errorCode": -1,
+  "message": "Success",
+  "response": {
+    "brandName": "Maruthi Suzuki",
+    "models": ["Swift VXI Hatchback", "Baleno VXI", "Brezza ZXI"]
+  }
+}</pre></td></tr>
+    <tr><th>Status</th><td><span class="status-done">Done</span></td></tr>
+    <tr><th>Comments</th><td>Returns filtered vehicle models list based on selected brand.</td></tr>
+</table>
+
+<h2>9. Add Vehicle Api:-</h2>
+<table>
+    <tr><th>Api Name</th><td>Add Vehicle</td></tr>
+    <tr><th>Method</th><td>POST</td></tr>
+    <tr><th>URL</th><td>vehicle/add</td></tr>
+    <tr><th>Params</th><td><pre>{
+  "registrationNumber": "KL 56 X 7004",
+  "vehicleType": "Car",
+  "brand": "Maruthi Suzuki",
+  "model": "Swift VXI Hatchback",
+  "year": 2022,
+  "fuelType": "Petrol",
+  "gearType": "Automatic",
+  "color": "Red",
+  "category": "Hatchback",
+  "seatingCapacity": "5 Seater",
+  "mileage": "18.5",
+  "isTaxi": "No"
+}</pre></td></tr>
+    <tr><th>Result</th><td><pre>{
+  "hasError": false,
+  "errorCode": -1,
+  "message": "Success",
+  "response": {
+    "vehicleId": 101,
+    "registrationNumber": "KL 56 X 7004",
+    "statusMessage": "Vehicle added successfully"
+  }
+}</pre></td></tr>
+    <tr><th>Status</th><td><span class="status-done">Done</span></td></tr>
+    <tr><th>Comments</th><td>registrationNumber must be converted to upper case automatically.</td></tr>
+</table>
+
+<h2>10. Vehicle List Api:-</h2>
+<table>
+    <tr><th>Api Name</th><td>Vehicle List</td></tr>
+    <tr><th>Method</th><td>POST</td></tr>
+    <tr><th>URL</th><td>vehicle/list</td></tr>
+    <tr><th>Params</th><td><pre>{
+  "searchKey": ""
+}</pre></td></tr>
+    <tr><th>Result</th><td><pre>{
+  "hasError": false,
+  "errorCode": -1,
+  "message": "Success",
+  "response": {
+    "vehicles": [
+      {
+        "vehicleId": 101,
+        "registrationNumber": "KL 56 X 7004",
+        "vehicleType": "Car",
+        "brand": "Maruthi Suzuki",
+        "model": "Swift VXI Hatchback",
+        "year": 2022,
+        "fuelType": "Petrol",
+        "gearType": "Automatic",
+        "imageRes": "img_car_swift"
+      },
+      {
+        "vehicleId": 102,
+        "registrationNumber": "KL 56 E 6332",
+        "vehicleType": "Bike",
+        "brand": "Hero Honda",
+        "model": "GLAMOUR 125 Fi",
+        "year": 2012,
+        "fuelType": "Petrol",
+        "gearType": "Manual",
+        "imageRes": "img_bike_glamour"
+      }
+    ]
+  }
+}</pre></td></tr>
+    <tr><th>Status</th><td><span class="status-done">Done</span></td></tr>
+    <tr><th>Comments</th><td>Returns all vehicles belonging to the logged-in user.</td></tr>
+</table>
+
+<h2>11. Delete Vehicle Api:-</h2>
+<table>
+    <tr><th>Api Name</th><td>Delete Vehicle</td></tr>
+    <tr><th>Method</th><td>POST</td></tr>
+    <tr><th>URL</th><td>vehicle/delete</td></tr>
+    <tr><th>Params</th><td><pre>{
+  "registrationNumber": "KL 56 X 7004"
+}</pre></td></tr>
+    <tr><th>Result</th><td><pre>{
+  "hasError": false,
+  "errorCode": -1,
+  "message": "Success",
+  "response": {
+    "statusMessage": "Vehicle removed successfully"
+  }
+}</pre></td></tr>
+    <tr><th>Status</th><td><span class="status-done">Done</span></td></tr>
+    <tr><th>Comments</th><td>Removes vehicle from user's garage.</td></tr>
+</table>
+
+<h2>12. Create Vehicle Status / Info Alert Api:-</h2>
+<table>
+    <tr><th>Api Name</th><td>Create Vehicle Status Alert</td></tr>
+    <tr><th>Method</th><td>POST</td></tr>
+    <tr><th>URL</th><td>vehicle-status/create</td></tr>
+    <tr><th>Params</th><td><pre>{
+  "statusTitle": "Car Loan EMI - ₹ 12000",
+  "vehicleAssociation": "All Vehicles",
+  "statusType": "Alert",
+  "infoDate": "28/08/2026",
+  "alertDate": "28/08/2026",
+  "alertTime": "09:00 AM",
+  "cycle": "Ones"
+}</pre></td></tr>
+    <tr><th>Result</th><td><pre>{
+  "hasError": false,
+  "errorCode": -1,
+  "message": "Success",
+  "response": {
+    "statusId": 501,
+    "statusMessage": "Alert scheduled successfully"
+  }
+}</pre></td></tr>
+    <tr><th>Status</th><td><span class="status-done">Done</span></td></tr>
+    <tr><th>Comments</th><td>cycle options: "Ones", "Every Week", "Every Month", "Every Year".<br>statusType options: "Service", "Challan", "PUC", "Insurance", "Toll", "Alert".</td></tr>
+</table>
+
+<h2>13. Vehicle Status Timeline List Api:-</h2>
+<table>
+    <tr><th>Api Name</th><td>Vehicle Status List</td></tr>
+    <tr><th>Method</th><td>POST</td></tr>
+    <tr><th>URL</th><td>vehicle-status/list</td></tr>
+    <tr><th>Params</th><td><pre>{
+  "vehicleFilter": "All"
+}</pre></td></tr>
+    <tr><th>Result</th><td><pre>{
+  "hasError": false,
+  "errorCode": -1,
+  "message": "Success",
+  "response": {
+    "statuses": [
+      {
+        "id": "501",
+        "type": "Alert",
+        "title": "Car Loan EMI - ₹ 12000",
+        "description": "You'll receive an alert once on 28/08/2026 at 09:00 AM.",
+        "vehicleName": "All Vehicles",
+        "date": "28/08/2026",
+        "time": "09:00 AM",
+        "alertTime": "28/08/2026 - 09:00 AM",
+        "cycle": "Ones",
+        "isActionable": false,
+        "actionText": null
+      }
+    ]
+  }
+}</pre></td></tr>
+    <tr><th>Status</th><td><span class="status-done">Done</span></td></tr>
+    <tr><th>Comments</th><td>vehicleFilter can be "All" or registration number (e.g. "KL 56 X 7004").</td></tr>
+</table>
+
+<h2>14. Emergency Services List Api:-</h2>
+<table>
+    <tr><th>Api Name</th><td>Emergency Services List</td></tr>
+    <tr><th>Method</th><td>POST</td></tr>
+    <tr><th>URL</th><td>services/emergency/list</td></tr>
+    <tr><th>Params</th><td><pre>{
+  "category": "tyre",
+  "latitude": 10.8505,
+  "longitude": 76.2711
+}</pre></td></tr>
+    <tr><th>Result</th><td><pre>{
+  "hasError": false,
+  "errorCode": -1,
+  "message": "Success",
+  "response": {
+    "services": [
+      {
+        "id": "eme_1",
+        "title": "Tyre Works",
+        "backgroundColor": "#F0EEFF",
+        "imageRes": "eme_tyre"
+      },
+      {
+        "id": "eme_2",
+        "title": "Mechanical",
+        "backgroundColor": "#F0EEFF",
+        "imageRes": "eme_mech"
+      }
+    ]
+  }
+}</pre></td></tr>
+    <tr><th>Status</th><td><span class="status-done">Done</span></td></tr>
+    <tr><th>Comments</th><td>Categories: tyre, mechanical, medical, electrical, breakdown, accident.</td></tr>
+</table>
+
+<h2>15. Search Services & Shops Api:-</h2>
+<table>
+    <tr><th>Api Name</th><td>Search Services & Shops</td></tr>
+    <tr><th>Method</th><td>POST</td></tr>
+    <tr><th>URL</th><td>services/search</td></tr>
+    <tr><th>Params</th><td><pre>{
+  "searchKey": "Washing",
+  "latitude": 10.8505,
+  "longitude": 76.2711
+}</pre></td></tr>
+    <tr><th>Result</th><td><pre>{
+  "hasError": false,
+  "errorCode": -1,
+  "message": "Success",
+  "response": {
+    "results": [
+      {
+        "serviceId": 201,
+        "title": "Washing Service",
+        "category": "Vehicle Care",
+        "rating": 4.8
+      }
+    ]
+  }
+}</pre></td></tr>
+    <tr><th>Status</th><td><span class="status-done">Done</span></td></tr>
+    <tr><th>Comments</th><td>Unified search across Emergency, Care, Repair, Utility, and Shops.</td></tr>
+</table>
+
+<h2>16. Notification List Api:-</h2>
+<table>
+    <tr><th>Api Name</th><td>Notification List</td></tr>
+    <tr><th>Method</th><td>POST</td></tr>
+    <tr><th>URL</th><td>notification/list</td></tr>
+    <tr><th>Params</th><td><pre>{
+  "page": 1,
+  "limit": 20
+}</pre></td></tr>
+    <tr><th>Result</th><td><pre>{
+  "hasError": false,
+  "errorCode": -1,
+  "message": "Success",
+  "response": {
+    "notifications": [],
+    "unreadCount": 0
+  }
+}</pre></td></tr>
+    <tr><th>Status</th><td><span class="status-done">Done</span></td></tr>
+    <tr><th>Comments</th><td>Returns user notifications list. Empty list renders empty bell illustration.</td></tr>
+</table>
+
+<h2>17. File Upload Api:-</h2>
+<table>
+    <tr><th>Api Name</th><td>File Upload</td></tr>
+    <tr><th>Method</th><td>POST</td></tr>
+    <tr><th>URL</th><td>file/upload</td></tr>
+    <tr><th>Params</th><td>multipart/form-data (file, folder)</td></tr>
+    <tr><th>Result</th><td><pre>{
+  "hasError": false,
+  "errorCode": -1,
+  "message": "Success",
+  "response": {
+    "fileId": "file_887766",
+    "fileUrl": "https://cdn.formyvehicles.ai/uploads/vehicles/swift.jpg"
+  }
+}</pre></td></tr>
+    <tr><th>Status</th><td><span class="status-done">Done</span></td></tr>
+    <tr><th>Comments</th><td>Used for vehicle images and RC/PUC attachment uploads.</td></tr>
+</table>
+
+</body>
+</html>
