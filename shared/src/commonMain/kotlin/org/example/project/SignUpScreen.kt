@@ -50,7 +50,7 @@ import org.example.project.viewmodel.PhoneNumberViewModel
 @OptIn(ExperimentalMaterial3Api::class)
 fun SignUpScreen(
     onNavigateToLogin: () -> Unit,
-    onSignUpSuccess: () -> Unit,
+    onSignUpSuccess: (String) -> Unit,
     modifier: Modifier = Modifier,
     viewModel: SignUpViewModel = org.koin.compose.koinInject(),
     phoneViewModel: PhoneNumberViewModel = org.koin.compose.koinInject()
@@ -118,7 +118,7 @@ fun SignUpScreen(
                     title = "Name",
                     isMandatory = false,
                     isSecure = false,
-                    placeholder = "Luc"
+                    placeholder = "Enter Name"
                 )
 
                 Spacer(modifier = Modifier.height(20.dp))
@@ -129,7 +129,8 @@ fun SignUpScreen(
                     onValueChange = { viewModel.onSelectState(it) },
                     title = "State",
                     options = uiState.states,
-                    isMandatory = false,
+                    getLabel = { it.name },
+                    isMandatory = true,
                     placeholder = "Select State"
                 )
 
@@ -151,7 +152,7 @@ fun SignUpScreen(
                     validationInfo = validationInfo,
                     title = "Mobile Number",
                     isMandatory = false,
-                    placeholder = ""
+                    placeholder = "0000000000"
                 )
 
                 Spacer(modifier = Modifier.height(20.dp))

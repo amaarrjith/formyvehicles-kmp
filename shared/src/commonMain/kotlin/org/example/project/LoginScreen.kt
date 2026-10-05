@@ -53,6 +53,7 @@ import kotlinx.coroutines.delay
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import kotlinx.coroutines.coroutineScope
+import org.example.project.model.PhoneValidationState
 
 /**
  * Premium Login Screen styled to match design mockups.
@@ -64,7 +65,7 @@ import kotlinx.coroutines.coroutineScope
 @Composable
 fun LoginScreen(
     onNavigateToSignUp: () -> Unit,
-    onLoginSuccess: () -> Unit,
+    onLoginSuccess: (String) -> Unit,
     modifier: Modifier = Modifier,
     viewModel: LoginViewModel = org.koin.compose.koinInject(),
     phoneViewModel: PhoneNumberViewModel = org.koin.compose.koinInject()
@@ -151,13 +152,13 @@ fun LoginScreen(
                 validationInfo = validationInfo,
                 title = "Mobile Number",
                 isMandatory = false,
-                placeholder = "8921731641"
+                placeholder = "0000000000"
             )
 
             Spacer(modifier = Modifier.height(10.dp))
 
             Text(
-                text = "We’ll send a one-time password (OTP) to your\nregistered mobile number.",
+                text = "We’ll send a one-time password (OTP) to your registered mobile number.",
                 fontSize = 14.sp,
                 fontWeight = FontWeight.Normal,
                 color = Color(0xFF64748B),
@@ -168,11 +169,15 @@ fun LoginScreen(
 
             Button(
                 onClick = {
-                    viewModel.onContinueClick(onLoginSuccess)
+                    if (validationInfo.state == PhoneValidationState.Valid) {
+                        focusManager.clearFocus()
+                        viewModel.onContinueClick(onLoginSuccess)
+                    }
                 },
                 modifier = Modifier
                     .fillMaxWidth()
                     .height(54.dp),
+                enabled = validationInfo.state == PhoneValidationState.Valid,
                 shape = RoundedCornerShape(28.dp),
                 colors = ButtonDefaults.buttonColors(
                     containerColor = Color(0xFF6338F6)

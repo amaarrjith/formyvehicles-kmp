@@ -21,6 +21,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Path
 import androidx.compose.ui.graphics.StrokeCap
@@ -40,6 +41,7 @@ import formyvehiclesai.shared.generated.resources.img_bike_glamour
 import org.jetbrains.compose.resources.painterResource
 import androidx.compose.ui.platform.LocalFocusManager
 import kotlinx.coroutines.delay
+import org.koin.compose.koinInject
 
 sealed interface HomeUiState {
     object Loading : HomeUiState
@@ -57,7 +59,7 @@ fun HomeScreen(
     onNotificationClick: () -> Unit = {},
     onViewAllClick: () -> Unit = {},
     modifier: Modifier = Modifier,
-    viewModel: HomeViewModel = org.koin.compose.koinInject()
+    viewModel: HomeViewModel = koinInject()
 ) {
     // Refresh user data every time this screen appears (handles logout+login with different user)
     LaunchedEffect(Unit) {
@@ -380,7 +382,7 @@ fun HomeScreenContent(
                             sweepAngle = 180f,
                             useCenter = false,
                             topLeft = Offset(size.width * 0.4f, size.height * 0.75f),
-                            size = androidx.compose.ui.geometry.Size(size.width * 0.2f, size.height * 0.15f),
+                            size = Size(size.width * 0.2f, size.height * 0.15f),
                             style = Stroke(width = 2.dp.toPx())
                         )
                     }
@@ -396,7 +398,7 @@ fun HomeScreenContent(
                 ) {
                     val initials = remember(userName) {
                         val trimmed = userName.trim()
-                        if (trimmed.isEmpty()) "KM"
+                        if (trimmed.isEmpty()) "U"
                         else {
                             val parts = trimmed.split("\\s+".toRegex())
                             if (parts.size == 1) parts[0].take(2).uppercase()
@@ -505,7 +507,9 @@ fun HomeScreenContent(
                         Text(
                             text = "Add Your First Vehicles",
                             fontSize = 16.sp,
-                            fontWeight = FontWeight.SemiBold
+                            fontWeight = FontWeight.SemiBold,
+                            textAlign = TextAlign.Center,
+                            modifier = Modifier.fillMaxWidth()
                         )
                     }
                 }

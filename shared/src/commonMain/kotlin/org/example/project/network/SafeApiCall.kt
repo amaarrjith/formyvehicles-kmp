@@ -28,79 +28,130 @@ suspend inline fun <reified T> safeApiCall(
     return try {
         val response = call()
         val status = response.status
-        when {
-            status.isSuccess() -> {
-                val bodyText = response.bodyAsText()
-                val json = Json { ignoreUnknownKeys = true; isLenient = true }
-                val jsonElement = try {
-                    json.parseToJsonElement(bodyText)
+        val bodyText = response.bodyAsText()
+
+        if (bodyText.isBlank()) {
+            return if (status.isSuccess()) {
+                val data = try {
+                    Json.decodeFromString<T>("{}")
                 } catch (e: Exception) {
                     null
                 }
-
-                if (jsonElement == null || jsonElement !is JsonObject) {
-                    return NetworkResult.Error(
-                        message = "Failed to parse server response: Invalid JSON payload.",
-                        type = ErrorType.UNKNOWN
-                    )
-                }
-
-                val hasError = jsonElement.jsonObject["hasError"]?.jsonPrimitive?.booleanOrNull == true
-                if (hasError) {
-                    val errorCode = jsonElement.jsonObject["errorCode"]?.jsonPrimitive?.intOrNull
-                    val message = jsonElement.jsonObject["message"]?.jsonPrimitive?.contentOrNull ?: "Something went wrong"
-                    NetworkResult.Error(
-                        message = message,
-                        type = mapErrorCodeToType(errorCode),
-                        errorCode = errorCode
-                    )
-                } else {
-                    val body = try {
-                        json.decodeFromString<CommonResponse<T>>(bodyText)
-                    } catch (e: Exception) {
-                        return NetworkResult.Error(
-                            message = "Response data parsing error: Unable to map server response.",
-                            type = ErrorType.UNKNOWN
-                        )
-                    }
-                    val data = body.response
-                    if (data != null) {
-                        NetworkResult.Success(data)
-                    } else {
-                        NetworkResult.Error(
-                            message = body.message ?: "Empty response body",
-                            type = ErrorType.UNKNOWN
-                        )
-                    }
-                }
-            }
-            status.value == 401 -> {
-                NetworkResult.Error("Unauthorized (401)", ErrorType.UNAUTHORIZED, 401)
-            }
-            status.value == 404 -> {
-                NetworkResult.Error("Requested endpoint not found (404)", ErrorType.UNKNOWN, 404)
-            }
-            status.value == 422 -> {
-                val errorMsg = try {
-                    response.body<CommonResponse<T>>().message ?: "Validation failed"
-                } catch (e: Exception) {
-                    "Validation failed"
-                }
-                NetworkResult.Error(errorMsg, ErrorType.VALIDATION, 422)
-            }
-            status.value >= 500 -> {
-                NetworkResult.Error("Server error (${status.value})", ErrorType.SERVER, status.value)
-            }
-            else -> {
-                NetworkResult.Error("HTTP Error: ${status.value}", ErrorType.UNKNOWN, status.value)
+                if (data != null) NetworkResult.Success(data)
+                else NetworkResult.Error(
+                    message = "Empty response body.",
+                    type = ErrorType.UNKNOWN,
+                    errorCode = status.value
+                )
+            } else {
+                NetworkResult.Error(
+                    message = when (status.value) {
+                        401 -> "Unauthorized"
+                        404 -> "Requested endpoint not found"
+                        422 -> "Validation failed"
+                        in 500..599 -> "Server error (${status.value})"
+                        else -> "Request failed (${status.value})"
+                    },
+                    type = mapErrorCodeToType(status.value),
+                    errorCode = status.value
+                )
             }
         }
+
+        val json = Json {
+            ignoreUnknownKeys = true
+            isLenient = true
+        }
+
+        val jsonElement = try {
+            json.parseToJsonElement(bodyText)
+        } catch (e: Exception) {
+            null
+        }
+
+        val jsonObject = jsonElement as? JsonObject
+        val backendMessage = extractBackendErrorMessage(jsonObject)
+            ?: if (!bodyText.trim().startsWith("<") && bodyText.isNotBlank() && bodyText.length < 300) bodyText.trim() else null
+
+        val hasError = jsonObject?.get("hasError")?.jsonPrimitive?.booleanOrNull == true
+
+        if (hasError || !status.isSuccess()) {
+            val errorCode = jsonObject?.get("errorCode")?.jsonPrimitive?.intOrNull ?: status.value
+            val message = backendMessage ?: when (status.value) {
+                401 -> "Unauthorized"
+                404 -> "Requested endpoint not found"
+                422 -> "Validation failed"
+                in 500..599 -> "Server error (${status.value})"
+                else -> "Something went wrong"
+            }
+            return NetworkResult.Error(
+                message = message,
+                type = mapErrorCodeToType(errorCode),
+                errorCode = errorCode
+            )
+        }
+
+        val body = try {
+            json.decodeFromString<CommonResponse<T>>(bodyText)
+        } catch (e: Exception) {
+            null
+        }
+
+        val data = body?.data ?: try {
+            json.decodeFromString<T>(bodyText)
+        } catch (e: Exception) {
+            null
+        }
+
+        if (data != null) {
+            NetworkResult.Success(data)
+        } else {
+            NetworkResult.Error(
+                message = backendMessage ?: "Unable to process server response.",
+                type = ErrorType.UNKNOWN,
+                errorCode = status.value
+            )
+        }
+
     } catch (e: Throwable) {
-        val message = parseErrorMessage(e)
-        val type = parseErrorType(e)
-        NetworkResult.Error(message = message, type = type)
+        NetworkResult.Error(
+            message = parseErrorMessage(e),
+            type = parseErrorType(e)
+        )
     }
 }
+
+fun extractBackendErrorMessage(jsonObject: JsonObject?): String? {
+    if (jsonObject == null) return null
+
+    val errorsElement = jsonObject["errors"]
+    val specificValidationMsg = when (errorsElement) {
+        is JsonObject -> {
+            errorsElement.values.firstNotNullOfOrNull { value ->
+                when (value) {
+                    is kotlinx.serialization.json.JsonArray -> value.firstOrNull()?.jsonPrimitive?.contentOrNull
+                    is kotlinx.serialization.json.JsonPrimitive -> value.contentOrNull
+                    else -> null
+                }
+            }
+        }
+        is kotlinx.serialization.json.JsonArray -> {
+            errorsElement.firstOrNull()?.jsonPrimitive?.contentOrNull
+        }
+        else -> null
+    }
+
+    val message = jsonObject["message"]?.jsonPrimitive?.contentOrNull?.takeIf { it.isNotBlank() }
+    val error = jsonObject["error"]?.jsonPrimitive?.contentOrNull?.takeIf { it.isNotBlank() }
+    val detail = jsonObject["detail"]?.jsonPrimitive?.contentOrNull?.takeIf { it.isNotBlank() }
+
+    if (message != null && (message.contains("Validation", ignoreCase = true) || message.contains("invalid", ignoreCase = true))) {
+        return specificValidationMsg ?: message
+    }
+
+    return specificValidationMsg ?: message ?: error ?: detail
+}
+
 
 fun parseErrorMessage(e: Throwable): String {
     val msg = e.message ?: ""

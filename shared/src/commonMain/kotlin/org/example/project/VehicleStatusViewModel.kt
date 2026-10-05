@@ -11,8 +11,7 @@ data class VehicleFilterOption(
     val filterKey: String    // unique key e.g. "KL 56 X 7004" or "All"
 )
 
-class VehicleStatusViewModel(private val db: AppDatabase) : ViewModel() {
-    private val queries = db.appDatabaseQueries
+class VehicleStatusViewModel : ViewModel() {
     val activeMobile: String
         get() = getPersistedString("logged_in_user_mobile") ?: ""
 
@@ -66,25 +65,28 @@ class VehicleStatusViewModel(private val db: AppDatabase) : ViewModel() {
             return "You'll receive an alert $cycleText on $alertDate$timeText."
         }
 
-    // Fetches actual added vehicles belonging to active user from database
-    val userVehicles: List<Vehicle>
-        get() = try {
-            val list = queries.selectUserVehicles(activeMobile).executeAsList()
-            list.map { dbVehicle ->
-                Vehicle(
-                    registrationNumber = dbVehicle.registrationNumber,
-                    vehicleType = dbVehicle.vehicleType,
-                    brand = dbVehicle.brand,
-                    model = dbVehicle.model,
-                    year = dbVehicle.year.toInt(),
-                    fuelType = dbVehicle.fuelType,
-                    gearType = dbVehicle.gearType,
-                    imageRes = dbVehicle.imageRes
-                )
-            }
-        } catch (e: Exception) {
-            emptyList()
-        }
+    val userVehicles: List<Vehicle> = listOf(
+        Vehicle(
+            registrationNumber = "KL 56 X 7004",
+            vehicleType = "Car",
+            brand = "Maruthi Suzuki",
+            model = "Swift VXI Hatchback",
+            year = 2022,
+            fuelType = "Petrol",
+            gearType = "Automatic",
+            imageRes = "img_car_swift"
+        ),
+        Vehicle(
+            registrationNumber = "KL 56 E 6332",
+            vehicleType = "Bike",
+            brand = "Hero Honda",
+            model = "GLAMOUR 125 Fi",
+            year = 2012,
+            fuelType = "Petrol",
+            gearType = "Manual",
+            imageRes = "img_bike_glamour"
+        )
+    )
 
     val filterOptions: List<VehicleFilterOption>
         get() {

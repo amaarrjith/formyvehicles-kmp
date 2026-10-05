@@ -63,6 +63,19 @@ fun OtpVerificationScreen(
     val focusRequester3 = remember { FocusRequester() }
     val focusRequester4 = remember { FocusRequester() }
 
+    val formattedPhone = remember(emailOrPhone) {
+        val clean = emailOrPhone.trim()
+        if (clean.isNotEmpty()) {
+            if (clean.length >= 4) {
+                "**********${clean.takeLast(4)}"
+            } else {
+                "**********$clean"
+            }
+        } else {
+            "**************"
+        }
+    }
+
     val focusManager = LocalFocusManager.current
 
     LaunchedEffect(Unit) {
@@ -132,7 +145,7 @@ fun OtpVerificationScreen(
                     Spacer(modifier = Modifier.height(8.dp))
 
                     Text(
-                        text = "A 4-digit code was sent to your email\n$emailOrPhone",
+                        text = "A 4-digit code was sent to your phone\n$formattedPhone",
                         fontSize = 15.sp,
                         fontWeight = FontWeight.Normal,
                         color = Color(0xFF475569),
@@ -243,7 +256,7 @@ fun OtpVerificationScreen(
                 Button(
                     onClick = {
                         if (isOtpComplete) {
-                            viewModel.verifyOtp { verifiedOtp ->
+                            viewModel.verifyOtp(mobileNumber = emailOrPhone) { verifiedOtp ->
                                 onVerifyClick(verifiedOtp)
                             }
                         }

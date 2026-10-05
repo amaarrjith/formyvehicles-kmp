@@ -5,7 +5,6 @@ plugins {
     alias(libs.plugins.androidMultiplatformLibrary)
     alias(libs.plugins.composeMultiplatform)
     alias(libs.plugins.composeCompiler)
-    alias(libs.plugins.sqldelight)
     alias(libs.plugins.kotlinSerialization)
 }
 
@@ -17,7 +16,6 @@ kotlin {
         iosTarget.binaries.framework {
             baseName = "Shared"
             isStatic = true
-            linkerOpts("-lsqlite3")
         }
     }
     
@@ -46,7 +44,6 @@ kotlin {
         androidMain.dependencies {
             implementation(libs.compose.uiToolingPreview)
             implementation(libs.compose.uiTooling)
-            implementation(libs.sqldelight.android.driver)
             implementation(libs.ktor.client.cio)
             api(libs.play.services.location)
         }
@@ -61,7 +58,6 @@ kotlin {
             implementation(libs.androidx.lifecycle.runtimeCompose)
             implementation("org.jetbrains.androidx.navigation:navigation-compose:2.9.0")
             implementation("org.jetbrains.androidx.core:core-bundle:1.0.1")
-            implementation(libs.sqldelight.runtime)
 
             // Koin Dependency Injection
             implementation(libs.koin.core)
@@ -79,19 +75,10 @@ kotlin {
             implementation(libs.kotlinx.serialization.json)
         }
         iosMain.dependencies {
-            implementation(libs.sqldelight.native.driver)
             implementation(libs.ktor.client.darwin)
         }
         commonTest.dependencies {
             implementation(libs.kotlin.test)
-        }
-    }
-}
-
-sqldelight {
-    databases {
-        create("AppDatabase") {
-            packageName.set("org.example.project")
         }
     }
 }

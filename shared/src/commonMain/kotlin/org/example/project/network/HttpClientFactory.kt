@@ -26,7 +26,7 @@ import org.example.project.data.settings.AppPreferences
 import org.example.project.data.settings.AuthPreferences
 import io.ktor.client.request.header
 
-internal const val BASE_URL = "http://127.0.0.1:8000/api/"
+internal const val BASE_URL = "http://192.168.1.32:8000/api/"
 
 internal fun HttpClientConfig<*>.commonConfig(authPreferences: AuthPreferences, appPreferences: AppPreferences) {
     install(ContentNegotiation) {
@@ -65,10 +65,10 @@ internal fun HttpClientConfig<*>.commonConfig(authPreferences: AuthPreferences, 
                         shouldLogout = true
                     } else if (response.status.isSuccess()) {
                         val body = response.body<CommonResponse<AuthResponse>>()
-                        if (!body.hasError && body.response != null) {
-                            val newAccess = body.response.access
-                            val newRefresh = body.response.refresh ?: refreshToken
-                            val newExpiry = body.response.tokenExpiry ?: 0L
+                        if (!body.hasError && body.data != null) {
+                            val newAccess = body.data.access
+                            val newRefresh = body.data.refresh ?: refreshToken
+                            val newExpiry = body.data.tokenExpiry ?: 0L
                             if (newAccess != null) {
                                 authPreferences.saveTokens(newAccess, newRefresh, newExpiry)
                                 return@refreshTokens BearerTokens(newAccess, newRefresh)

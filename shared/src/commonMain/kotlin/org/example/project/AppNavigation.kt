@@ -12,11 +12,6 @@ import androidx.core.bundle.Bundle
 fun AppNavigation() {
     val navController = rememberNavController()
 
-    // Initialize SQLDelight database manager
-    remember {
-        DatabaseManager.init(DatabaseDriverFactory())
-    }
-
     NavHost(
         navController = navController,
         startDestination = AppScreens.Splash.route
@@ -61,8 +56,8 @@ fun AppNavigation() {
                 onNavigateToSignUp = {
                     navController.navigate(AppScreens.SignUp.route)
                 },
-                onLoginSuccess = {
-                    navController.navigate(AppScreens.OtpVerification.route)
+                onLoginSuccess = { mobile ->
+                    navController.navigate(AppScreens.otpVerification(mobile))
                 }
             )
         }
@@ -71,25 +66,30 @@ fun AppNavigation() {
                 onNavigateToLogin = {
                     navController.popBackStack()
                 },
-                onSignUpSuccess = {
-                    navController.navigate(AppScreens.OtpVerification.route)
+                onSignUpSuccess = { mobile ->
+                    navController.navigate(AppScreens.otpVerification(mobile))
                 }
             )
         }
-        composable(AppScreens.OtpVerification.route) {
-            val mobile = getPersistedString("logged_in_user_mobile") ?: ""
-            val formattedPhone = if (mobile.trim().isNotEmpty()) {
-                val clean = mobile.trim()
-                if (clean.length >= 4) {
-                    "**********${clean.takeLast(4)}"
-                } else {
-                    "**********$clean"
+        composable(
+            route = AppScreens.OtpVerification.route,
+            arguments = listOf(
+                androidx.navigation.navArgument("mobile") {
+                    type = androidx.navigation.NavType.StringType
+                    defaultValue = ""
                 }
+            )
+        ) { backStackEntry ->
+            val rawMobile = backStackEntry.savedStateHandle.get<String>("mobile")
+                ?: backStackEntry.arguments?.getString("mobile")
+                ?: ""
+            val mobile = if (rawMobile == "unknown" || rawMobile.isBlank()) {
+                getPersistedString("logged_in_user_mobile") ?: ""
             } else {
-                "**********7644"
+                rawMobile
             }
             OtpVerificationScreen(
-                emailOrPhone = formattedPhone,
+                emailOrPhone = mobile,
                 onVerifyClick = { otp ->
                     setGuestUser(false)
                     setUserLoggedIn(true)

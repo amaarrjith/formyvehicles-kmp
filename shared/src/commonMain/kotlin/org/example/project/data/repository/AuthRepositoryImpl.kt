@@ -18,13 +18,13 @@ class AuthRepositoryImpl(
 ) : AuthRepository {
 
     override suspend fun login(
-        email: String,
-        password: String
+        countryCode: String,
+        mobileNumber: String
     ): NetworkResult<LoginResponse> {
         return apiService.login(
             LoginRequest(
-                email = email,
-                password = password
+                countryCode = countryCode,
+                mobileNumber = mobileNumber
             )
         )
     }
@@ -41,6 +41,7 @@ class AuthRepositoryImpl(
 
     override suspend fun register(
         name: String,
+        stateId: String,
         state: String,
         countryCode: String,
         mobileNumber: String?,
@@ -49,6 +50,7 @@ class AuthRepositoryImpl(
         return apiService.register(
             request = RegisterRequest(
                 name = name,
+                stateId = stateId,
                 state = state,
                 countryCode = countryCode,
                 mobileNumber = mobileNumber ?: "",
@@ -59,15 +61,13 @@ class AuthRepositoryImpl(
     }
 
     override suspend fun verifyOTP(
-        tempUserId: Int,
-        email: String,
-        otp: String
+        mobileNumber: String,
+        code: String
     ): NetworkResult<OTPResponse> {
         return apiService.verifyOTP(
             OTPRequest(
-                tempUserId = tempUserId,
-                email = email,
-                otp = otp
+                code = code,
+                mobileNumber = mobileNumber
             )
         )
     }

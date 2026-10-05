@@ -8,15 +8,16 @@ import org.example.project.data.model.RegisterResponse
 import org.example.project.network.NetworkResult
 
 interface AuthRepository {
-    suspend fun login(email: String, password: String): NetworkResult<LoginResponse>
+    suspend fun login(countryCode: String, mobileNumber: String): NetworkResult<LoginResponse>
     suspend fun forgetPassword(email: String): NetworkResult<ForgetPasswordResponse>
     suspend fun register(
         name: String,
+        stateId: String,
         state: String,
         countryCode: String,
-        mobileNumber: String? = null,
-        agreedTerms: Boolean? = null
+        mobileNumber: String?,
+        agreedTerms: Boolean?
     ): NetworkResult<RegisterResponse>
-    suspend fun verifyOTP(tempUserId: Int, email: String, otp: String): NetworkResult<OTPResponse>
+    suspend fun verifyOTP(mobileNumber: String, code: String): NetworkResult<OTPResponse>
     suspend fun logout(): NetworkResult<CommonModelResponse>
 }
