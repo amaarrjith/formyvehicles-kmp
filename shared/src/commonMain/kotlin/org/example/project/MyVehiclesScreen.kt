@@ -18,6 +18,8 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
@@ -36,6 +38,8 @@ fun MyVehiclesScreen(
     modifier: Modifier = Modifier,
     viewModel: HomeViewModel = org.koin.compose.koinInject()
 ) {
+    val uiState by viewModel.uiState.collectAsState()
+
     LaunchedEffect(Unit) {
         viewModel.refreshUser()
     }
@@ -76,14 +80,14 @@ fun MyVehiclesScreen(
                 )
                 Spacer(modifier = Modifier.height(2.dp))
                 Text(
-                    text = "${viewModel.vehicleList.size} Vehicles in your garage",
+                    text = "${uiState.vehicleList.size} Vehicles in your garage",
                     fontSize = 14.sp,
                     color = Color(0xFF64748B)
                 )
             }
         }
 
-        if (viewModel.vehicleList.isEmpty()) {
+        if (uiState.vehicleList.isEmpty()) {
             Box(
                 modifier = Modifier
                     .weight(1f)
@@ -102,10 +106,10 @@ fun MyVehiclesScreen(
                 verticalArrangement = Arrangement.spacedBy(16.dp),
                 contentPadding = PaddingValues(bottom = 20.dp)
             ) {
-                items(viewModel.vehicleList, key = { it.registrationNumber }) { vehicle ->
+                items(uiState.vehicleList, key = { it.registrationNumber }) { vehicle ->
                     VehicleCard(
                         vehicle = vehicle,
-                        onDeleteClick = { viewModel.deleteVehicle(vehicle) },
+                        onDeleteClick = {  },
                         onVehicleClick = onVehicleClick
                     )
                 }

@@ -4,12 +4,16 @@ import org.example.project.data.remote.api.AuthApiService
 import org.example.project.data.remote.api.AuthApiServiceImpl
 import org.example.project.data.remote.api.UserApiService
 import org.example.project.data.remote.api.UserApiServiceImpl
+import org.example.project.data.remote.api.VehicleApiService
+import org.example.project.data.remote.api.VehicleApiServiceImpl
 import org.example.project.data.repository.AuthRepositoryImpl
 import org.example.project.data.repository.UserRepositoryImpl
+import org.example.project.data.repository.VehicleRepositoryImpl
 import org.example.project.data.settings.AppPreferences
 import org.example.project.data.settings.AuthPreferences
 import org.example.project.domain.repository.AuthRepository
 import org.example.project.domain.repository.UserRepository
+import org.example.project.domain.repository.VehicleRepository
 import org.example.project.location.LocationManager
 import org.example.project.location.createLocationManager
 import org.example.project.network.CountryApi
@@ -29,6 +33,8 @@ val appModule = module {
     factory<AuthRepository> { AuthRepositoryImpl(get()) }
     factory<UserApiService> { UserApiServiceImpl(get()) }
     factory<UserRepository> { UserRepositoryImpl(get()) }
+    factory<VehicleApiService> { VehicleApiServiceImpl(get()) }
+    factory<VehicleRepository> { VehicleRepositoryImpl(get()) }
     single { CountryApi() }
     single { CountryRepository(get()) }
     single { PhoneNumberValidator() }
@@ -36,7 +42,7 @@ val appModule = module {
     factory { LoginViewModel(get()) }
     factory { SignUpViewModel(get(), get()) }
     factory { OtpVerificationViewModel(get(), get()) }
-    factory { HomeViewModel(get()) }
+    factory { HomeViewModel(get(), get()) }
     factory { VehicleStatusViewModel() }
     factory { OthersViewModel(get()) }
 }

@@ -10,4 +10,8 @@ object ApiEndpoints {
     const val LOGOUT = "auth/logout"
     const val GET_STATES = "states-list"
     const val USER = "user"
+    const val USER_VEHICLES = "user/vehicles"
+    const val VEHICLE_TYPES = "vehicle/vehicle-types"
+    const val VEHICLE_BRANDS = "vehicle/vehicle-brands"
+    const val VEHICLE_MODELS = "vehicle/vehicle-models"
 }

@@ -19,6 +19,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.Text
@@ -70,12 +71,15 @@ fun <T> AppDropdown(
     isMandatory: Boolean = false,
     modifier: Modifier = Modifier,
     placeholder: String = "Select Option",
-    enabled: Boolean = true
+    enabled: Boolean = true,
+    isLoading: Boolean = false,
+    loadingText: String = "Loading..."
 ) {
     var expanded by remember { mutableStateOf(false) }
     var triggerWidthDp by remember { mutableStateOf(0.dp) }
     val density = LocalDensity.current
     val focusManager = LocalFocusManager.current
+    val isInteractive = enabled && !isLoading
 
     val rotationAngle by animateFloatAsState(
         targetValue = if (expanded) 180f else 0f,
@@ -120,19 +124,19 @@ fun <T> AppDropdown(
                         triggerWidthDp = with(density) { coordinates.size.width.toDp() }
                     }
                     .clip(RoundedCornerShape(14.dp))
-                    .background(if (enabled) Color.White else Color(0xFFF8FAFC))
+                    .background(if (isInteractive) Color.White else Color(0xFFF8FAFC))
                     .border(
                         border = BorderStroke(
                             width = 1.dp,
                             color = when {
-                                !enabled -> Color(0xFFE2E8F0)
+                                !isInteractive -> Color(0xFFE2E8F0)
                                 expanded -> Color(0xFF6366F1)
                                 else -> Color(0xFFE2E8F0)
                             }
                         ),
                         shape = RoundedCornerShape(14.dp)
                     )
-                    .clickable(enabled = enabled) {
+                    .clickable(enabled = isInteractive) {
                         focusManager.clearFocus()
                         expanded = !expanded
                     }
@@ -141,11 +145,16 @@ fun <T> AppDropdown(
                 horizontalArrangement = Arrangement.SpaceBetween
             ) {
                 Text(
-                    text = if (value.isNotEmpty()) value else placeholder,
+                    text = when {
+                        isLoading -> loadingText
+                        value.isNotEmpty() -> value
+                        else -> placeholder
+                    },
                     fontSize = 15.sp,
                     fontWeight = FontWeight.Normal,
                     color = when {
-                        !enabled -> Color(0xFF94A3B8)
+                        isLoading -> Color(0xFF6366F1)
+                        !isInteractive -> Color(0xFF94A3B8)
                         value.isNotEmpty() -> Color(0xFF1E293B)
                         else -> Color(0xFF94A3B8)
                     },
@@ -156,32 +165,40 @@ fun <T> AppDropdown(
 
                 Spacer(modifier = Modifier.width(12.dp))
 
-                Canvas(
-                    modifier = Modifier
-                        .size(16.dp)
-                        .rotate(rotationAngle)
-                ) {
-                    val path = Path().apply {
-                        moveTo(size.width * 0.2f, size.height * 0.38f)
-                        lineTo(size.width * 0.5f, size.height * 0.68f)
-                        lineTo(size.width * 0.8f, size.height * 0.38f)
-                    }
-
-                    drawPath(
-                        path = path,
-                        color = if (enabled) Color(0xFF1E293B) else Color(0xFF94A3B8),
-                        style = Stroke(
-                            width = 1.8.dp.toPx(),
-                            cap = StrokeCap.Round,
-                            join = StrokeJoin.Round
-                        )
+                if (isLoading) {
+                    CircularProgressIndicator(
+                        modifier = Modifier.size(18.dp),
+                        color = Color(0xFF6366F1),
+                        strokeWidth = 2.dp
                     )
+                } else {
+                    Canvas(
+                        modifier = Modifier
+                            .size(16.dp)
+                            .rotate(rotationAngle)
+                    ) {
+                        val path = Path().apply {
+                            moveTo(size.width * 0.2f, size.height * 0.38f)
+                            lineTo(size.width * 0.5f, size.height * 0.68f)
+                            lineTo(size.width * 0.8f, size.height * 0.38f)
+                        }
+
+                        drawPath(
+                            path = path,
+                            color = if (isInteractive) Color(0xFF1E293B) else Color(0xFF94A3B8),
+                            style = Stroke(
+                                width = 1.8.dp.toPx(),
+                                cap = StrokeCap.Round,
+                                join = StrokeJoin.Round
+                            )
+                        )
+                    }
                 }
             }
 
             // Dropdown Menu matching exact trigger width
             DropdownMenu(
-                expanded = expanded && enabled,
+                expanded = expanded && isInteractive,
                 onDismissRequest = {
                     expanded = false
                 },
@@ -193,7 +210,19 @@ fun <T> AppDropdown(
                     .heightIn(max = 280.dp)
                     .background(Color.White, RoundedCornerShape(14.dp))
             ) {
-                if (options.isEmpty()) {
+                if (isLoading) {
+                    DropdownMenuItem(
+                        text = {
+                            Text(
+                                text = loadingText,
+                                fontSize = 14.sp,
+                                color = Color(0xFF6366F1)
+                            )
+                        },
+                        onClick = { expanded = false },
+                        enabled = false
+                    )
+                } else if (options.isEmpty()) {
                     DropdownMenuItem(
                         text = {
                             Text(
@@ -283,7 +312,9 @@ fun <T> AppDropdown(
     isMandatory: Boolean = false,
     modifier: Modifier = Modifier,
     placeholder: String = "Select Option",
-    enabled: Boolean = true
+    enabled: Boolean = true,
+    isLoading: Boolean = false,
+    loadingText: String = "Loading..."
 ) {
     AppDropdown(
         value = selectedItem?.let(getLabel) ?: "",
@@ -299,6 +330,8 @@ fun <T> AppDropdown(
         isMandatory = isMandatory,
         modifier = modifier,
         placeholder = placeholder,
-        enabled = enabled
+        enabled = enabled,
+        isLoading = isLoading,
+        loadingText = loadingText
     )
 }

@@ -26,7 +26,7 @@ import org.example.project.data.settings.AppPreferences
 import org.example.project.data.settings.AuthPreferences
 import io.ktor.client.request.header
 
-internal const val BASE_URL = "http://192.168.1.32:8000/api/"
+internal const val BASE_URL = "https://voyage-plug-quotable.ngrok-free.dev/api/"
 
 internal fun HttpClientConfig<*>.commonConfig(authPreferences: AuthPreferences, appPreferences: AppPreferences) {
     install(ContentNegotiation) {
@@ -103,6 +103,7 @@ internal fun HttpClientConfig<*>.commonConfig(authPreferences: AuthPreferences, 
     defaultRequest {
         url(BASE_URL)
         header("Language", appPreferences.getLanguage())
+        header("ngrok-skip-browser-warning", true)
     }
 }
 

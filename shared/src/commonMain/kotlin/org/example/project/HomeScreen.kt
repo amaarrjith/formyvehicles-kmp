@@ -41,13 +41,8 @@ import formyvehiclesai.shared.generated.resources.img_bike_glamour
 import org.jetbrains.compose.resources.painterResource
 import androidx.compose.ui.platform.LocalFocusManager
 import kotlinx.coroutines.delay
+import org.example.project.data.model.UserVehicle
 import org.koin.compose.koinInject
-
-sealed interface HomeUiState {
-    object Loading : HomeUiState
-    data class Success(val vehicles: List<Vehicle>) : HomeUiState
-    data class Error(val message: String) : HomeUiState
-}
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -61,11 +56,11 @@ fun HomeScreen(
     modifier: Modifier = Modifier,
     viewModel: HomeViewModel = koinInject()
 ) {
+    val uiState by viewModel.uiState.collectAsState()
+
     // Refresh user data every time this screen appears (handles logout+login with different user)
     LaunchedEffect(Unit) {
         viewModel.refreshUser()
-        delay(1000)
-        viewModel.uiState = HomeUiState.Success(viewModel.vehicleList)
     }
 
     AppBackHandler(enabled = true) {
@@ -73,15 +68,20 @@ fun HomeScreen(
     }
     
     Box(modifier = modifier.fillMaxSize()) {
-        when (val state = viewModel.uiState) {
-            is HomeUiState.Loading -> {
+        when {
+            uiState.isLoading -> {
                 AppLoader(message = "Fetching your vehicles...")
             }
-            is HomeUiState.Success -> {
+            uiState.errorMessage != null -> {
+                Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                    Text(text = uiState.errorMessage ?: "", color = Color.Red, fontSize = 16.sp)
+                }
+            }
+            else -> {
                 HomeScreenContent(
-                    vehicles = state.vehicles,
-                    userName = viewModel.userName,
-                    onAddVehicleTrigger = { viewModel.isSheetOpen = true },
+                    vehicles = uiState.vehicleList,
+                    userName = uiState.userName,
+                    onAddVehicleTrigger = { viewModel.setSheetOpen(true) },
                     onDeleteVehicle = { vehicle ->
                         viewModel.deleteVehicle(vehicle)
                     },
@@ -91,22 +91,17 @@ fun HomeScreen(
                     onViewAllClick = onViewAllClick
                 )
             }
-            is HomeUiState.Error -> {
-                Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                    Text(text = state.message, color = Color.Red, fontSize = 16.sp)
-                }
-            }
         }
 
         // Modal Bottom Sheet with Drag Handle
-        if (viewModel.isSheetOpen) {
+        if (uiState.isSheetOpen) {
             val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
             val focusManager = LocalFocusManager.current
 
             ModalBottomSheet(
                 onDismissRequest = {
                     focusManager.clearFocus()
-                    viewModel.isSheetOpen = false
+                    viewModel.setSheetOpen(false)
                 },
                 sheetState = sheetState,
                 dragHandle = { BottomSheetDefaults.DragHandle() },
@@ -136,8 +131,8 @@ fun HomeScreen(
                         verticalArrangement = Arrangement.spacedBy(16.dp)
                     ) {
                         AppTextField(
-                            value = viewModel.regNumber,
-                            onValueChange = { viewModel.regNumber = it },
+                            value = uiState.regNumber,
+                            onValueChange = { viewModel.onRegNumberChange(it) },
                             title = "Registration Number",
                             isMandatory = true,
                             isSecure = false,
@@ -145,103 +140,115 @@ fun HomeScreen(
                         )
 
                         AppDropdown(
-                            value = viewModel.selectedVehicleType,
-                            onValueChange = { viewModel.onVehicleTypeSelected(it) },
+                            selectedItem = uiState.selectedVehicleType,
+                            onItemSelected = { viewModel.onVehicleTypeSelected(it) },
                             title = "Vehicle Type",
-                            options = viewModel.vehicleTypes,
+                            options = uiState.vehicleTypes,
+                            getLabel = { it.name },
                             isMandatory = true,
-                            placeholder = "Select Vehicle Type"
+                            isLoading = uiState.isTypesLoading,
+                            loadingText = "Vehicle types are loading...",
+                            placeholder = "Select Vehicle Type",
+                            enabled = !uiState.isTypesLoading
                         )
 
                         AppDropdown(
-                            value = viewModel.selectedBrand,
-                            onValueChange = { viewModel.onBrandSelected(it) },
+                            selectedItem = uiState.selectedBrand,
+                            onItemSelected = { viewModel.onBrandSelected(it) },
                             title = "Brand",
-                            options = viewModel.availableBrands,
+                            options = uiState.availableBrands,
+                            getLabel = { it.name },
                             isMandatory = true,
-                            placeholder = "Select Brand"
+                            isLoading = uiState.isBrandsLoading,
+                            loadingText = "Brands are loading...",
+                            placeholder = if (uiState.selectedVehicleType == null) "Select Vehicle Type first" else "Select Brand",
+                            enabled = uiState.selectedVehicleType != null && !uiState.isBrandsLoading
                         )
 
                         AppDropdown(
-                            value = viewModel.selectedModel,
-                            onValueChange = { viewModel.selectedModel = it },
+                            selectedItem = uiState.selectedModel,
+                            onItemSelected = { viewModel.onModelSelected(it) },
                             title = "Model",
-                            options = viewModel.modelsList,
+                            options = uiState.modelsList,
+                            getLabel = { it.name },
                             isMandatory = true,
-                            placeholder = "Select Model"
+                            isLoading = uiState.isModelsLoading,
+                            loadingText = "Models are loading...",
+                            placeholder = if (uiState.selectedBrand == null) "Select Brand first" else "Select Model",
+                            enabled = uiState.selectedBrand != null && !uiState.isModelsLoading
                         )
 
                         AppDropdown(
-                            value = viewModel.selectedYear,
-                            onValueChange = { viewModel.selectedYear = it },
+                            value = uiState.selectedYear,
+                            onValueChange = { viewModel.onYearSelected(it) },
                             title = "Year",
-                            options = (2010..2026).map { it.toString() },
+                            options = (1980..2026).map { it.toString() },
                             isMandatory = true,
                             placeholder = "Select Year"
                         )
 
                         AppDropdown(
-                            value = viewModel.selectedFuelType,
-                            onValueChange = { viewModel.selectedFuelType = it },
+                            value = uiState.selectedFuelType,
+                            onValueChange = { viewModel.onFuelTypeSelected(it) },
                             title = "Fuel Type",
-                            options = viewModel.fuelTypes,
+                            options = uiState.fuelTypes,
                             isMandatory = true,
                             placeholder = "Select Fuel Type"
                         )
 
                         AppDropdown(
-                            value = viewModel.selectedGearType,
-                            onValueChange = { viewModel.selectedGearType = it },
+                            value = uiState.selectedGearType,
+                            onValueChange = { viewModel.onGearTypeSelected(it) },
                             title = "Gear Type",
-                            options = viewModel.gearTypes,
+                            options = uiState.gearTypes,
                             isMandatory = true,
                             placeholder = "Select Gear Type"
                         )
 
                         Text(
-                            text = if (viewModel.isMoreDetailsVisible) "- Hide Extra Details" else "+ Add More Details",
+                            text = if (uiState.isMoreDetailsVisible) "- Hide Extra Details" else "+ Add More Details",
                             color = Color(0xFF6366F1),
                             fontSize = 15.sp,
                             fontWeight = FontWeight.SemiBold,
                             modifier = Modifier
                                 .clickable {
                                     focusManager.clearFocus()
-                                    viewModel.isMoreDetailsVisible = !viewModel.isMoreDetailsVisible
+                                    viewModel.toggleMoreDetails()
                                 }
                                 .padding(vertical = 4.dp)
                         )
 
-                        if (viewModel.isMoreDetailsVisible) {
+                        if (uiState.isMoreDetailsVisible) {
                             AppDropdown(
-                                value = viewModel.selectedColor,
-                                onValueChange = { viewModel.selectedColor = it },
+                                value = uiState.selectedColor,
+                                onValueChange = { viewModel.onColorSelected(it) },
                                 title = "Vehicle Color",
-                                options = viewModel.vehicleColors,
+                                options = uiState.vehicleColors,
                                 isMandatory = false,
                                 placeholder = "Select Color"
                             )
 
                             AppDropdown(
-                                value = viewModel.selectedCategory,
-                                onValueChange = { viewModel.selectedCategory = it },
+                                value = uiState.selectedCategory,
+                                onValueChange = { viewModel.onCategorySelected(it) },
                                 title = "Vehicle Category",
-                                options = viewModel.vehicleCategories,
+                                options = uiState.vehicleCategories,
                                 isMandatory = false,
                                 placeholder = "Select Category (Ex. Hatchback)"
                             )
 
                             AppDropdown(
-                                value = viewModel.selectedSeatingCapacity,
-                                onValueChange = { viewModel.selectedSeatingCapacity = it },
+                                value = uiState.selectedSeatingCapacity,
+                                onValueChange = { viewModel.onSeatingCapacitySelected(it) },
                                 title = "Seating Capacity",
-                                options = viewModel.seatingCapacities,
+                                options = uiState.seatingCapacities,
                                 isMandatory = false,
                                 placeholder = "Select Seating Capacity"
                             )
 
                             AppTextField(
-                                value = viewModel.mileageInput,
-                                onValueChange = { viewModel.mileageInput = it },
+                                value = uiState.mileageInput,
+                                onValueChange = { viewModel.onMileageChange(it) },
                                 title = "Mileage in KM (Approx)",
                                 isMandatory = false,
                                 isSecure = false,
@@ -249,8 +256,8 @@ fun HomeScreen(
                             )
 
                             AppDropdown(
-                                value = viewModel.selectedIsTaxi,
-                                onValueChange = { viewModel.selectedIsTaxi = it },
+                                value = uiState.selectedIsTaxi,
+                                onValueChange = { viewModel.onIsTaxiSelected(it) },
                                 title = "Is this a Taxi?",
                                 options = listOf("No", "Yes"),
                                 isMandatory = false,
@@ -271,7 +278,7 @@ fun HomeScreen(
                             onClick = {
                                 viewModel.submitVehicle()
                             },
-                            enabled = viewModel.isFormValid,
+                            enabled = uiState.isFormValid,
                             modifier = Modifier
                                 .fillMaxWidth()
                                 .height(56.dp),
@@ -289,7 +296,7 @@ fun HomeScreen(
                         }
 
                         TextButton(
-                            onClick = { viewModel.isSheetOpen = false },
+                            onClick = { viewModel.setSheetOpen(false) },
                             modifier = Modifier
                                 .fillMaxWidth()
                                 .height(48.dp)
@@ -310,7 +317,7 @@ fun HomeScreen(
 
 @Composable
 fun HomeScreenContent(
-    vehicles: List<Vehicle>,
+    vehicles: List<UserVehicle>,
     userName: String,
     onAddVehicleTrigger: () -> Unit,
     onDeleteVehicle: (Vehicle) -> Unit,
@@ -565,7 +572,7 @@ fun HomeScreenContent(
                     items(vehicles) { vehicle ->
                         VehicleCard(
                             vehicle = vehicle,
-                            onDeleteClick = { onDeleteVehicle(vehicle) },
+                            onDeleteClick = {  },
                             onVehicleClick = onVehicleClick
                         )
                     }
@@ -601,14 +608,14 @@ fun HomeScreenContent(
 
 @Composable
 fun VehicleCard(
-    vehicle: Vehicle,
+    vehicle: UserVehicle,
     onDeleteClick: () -> Unit,
     onVehicleClick: (Vehicle) -> Unit
 ) {
     Card(
         modifier = Modifier
             .fillMaxWidth()
-            .clickable { onVehicleClick(vehicle) },
+            .clickable {  },
         shape = RoundedCornerShape(16.dp),
         border = BorderStroke(1.dp, Color(0xFFE2E8F0)),
         colors = CardDefaults.cardColors(containerColor = Color.White)
@@ -620,26 +627,26 @@ fun VehicleCard(
             verticalAlignment = Alignment.CenterVertically
         ) {
             // Vehicle Image (Swift or Glamour or general outline)
-            val painter = when (vehicle.imageRes) {
-                "img_car_swift" -> painterResource(Res.drawable.img_car_swift)
-                "img_bike_glamour" -> painterResource(Res.drawable.img_bike_glamour)
-                else -> {
-                    if (vehicle.vehicleType == "Car") {
-                        painterResource(Res.drawable.img_car_swift)
-                    } else {
-                        painterResource(Res.drawable.img_bike_glamour)
-                    }
-                }
-            }
-
-            Image(
-                painter = painter,
-                contentDescription = null,
-                modifier = Modifier
-                    .size(width = 110.dp, height = 75.dp)
-                    .clip(RoundedCornerShape(8.dp)),
-                contentScale = ContentScale.Fit
-            )
+//            val painter = when (vehicle.imageRes) {
+//                "img_car_swift" -> painterResource(Res.drawable.img_car_swift)
+//                "img_bike_glamour" -> painterResource(Res.drawable.img_bike_glamour)
+//                else -> {
+//                    if (vehicle.vehicleType == "Car") {
+//                        painterResource(Res.drawable.img_car_swift)
+//                    } else {
+//                        painterResource(Res.drawable.img_bike_glamour)
+//                    }
+//                }
+//            }
+//
+//            Image(
+//                painter = painter,
+//                contentDescription = null,
+//                modifier = Modifier
+//                    .size(width = 110.dp, height = 75.dp)
+//                    .clip(RoundedCornerShape(8.dp)),
+//                contentScale = ContentScale.Fit
+//            )
 
             Spacer(modifier = Modifier.width(16.dp))
 
@@ -653,14 +660,14 @@ fun VehicleCard(
                 )
                 Spacer(modifier = Modifier.height(2.dp))
                 Text(
-                    text = vehicle.model,
+                    text = vehicle.vehicleModel.name,
                     fontSize = 15.sp,
                     fontWeight = FontWeight.Bold,
                     color = Color(0xFF1E293B)
                 )
                 Spacer(modifier = Modifier.height(4.dp))
                 Text(
-                    text = vehicle.brand,
+                    text = vehicle.brand.name,
                     fontSize = 13.sp,
                     color = Color(0xFF94A3B8) // Slate-400
                 )
