@@ -14,5 +14,6 @@ enum class AppScreens(val route: String) {
 
     companion object {
         fun otpVerification(mobile: String): String = "otp_verification/${if (mobile.isBlank()) "unknown" else mobile.trim()}"
+        fun vehicleStatus(regNumber: String): String = "vehicle_status/${if (regNumber.isBlank()) "all" else regNumber.trim()}"
     }
 }

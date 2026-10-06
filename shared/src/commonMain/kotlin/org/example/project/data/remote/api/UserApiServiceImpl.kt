@@ -4,6 +4,7 @@ import io.ktor.client.HttpClient
 import io.ktor.client.request.get
 import io.ktor.client.request.post
 import org.example.project.data.model.AddVehicleRequest
+import org.example.project.data.model.AddVehicleResponse
 import org.example.project.data.model.State
 import org.example.project.data.model.UserDto
 import org.example.project.data.model.UserVehicle
@@ -27,7 +28,7 @@ class UserApiServiceImpl(
         httpClient.get(ApiEndpoints.USER_VEHICLES)
     }
 
-    override suspend fun addUserVehicle(request: AddVehicleRequest): NetworkResult<String> = safeApiCall{
+    override suspend fun addUserVehicle(request: AddVehicleRequest): NetworkResult<AddVehicleResponse> = safeApiCall{
         httpClient.post(ApiEndpoints.USER_VEHICLES) {
             jsonBody(request)
         }

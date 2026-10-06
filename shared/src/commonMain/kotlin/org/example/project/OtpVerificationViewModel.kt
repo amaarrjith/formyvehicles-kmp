@@ -18,15 +18,11 @@ import kotlin.time.Duration.Companion.milliseconds
 class OtpVerificationViewModel(
     private val authRepository: AuthRepository,
     private val authPreferences: AuthPreferences
-) : ViewModel() {
+) : BaseViewModel() {
     var otp1 by mutableStateOf("")
     var otp2 by mutableStateOf("")
     var otp3 by mutableStateOf("")
     var otp4 by mutableStateOf("")
-
-    var showToast by mutableStateOf(false)
-    var toastMessage by mutableStateOf("")
-    var isErrorToast by mutableStateOf(false)
 
     // Pending navigation callback to be executed ONLY after toast goes away
     private var pendingNavigation: (() -> Unit)? = null
@@ -117,22 +113,18 @@ class OtpVerificationViewModel(
                     setUserLoggedIn(true)
                     setGuestUser(false)
 
-                    isErrorToast = false
-                    toastMessage = "OTP Verified Successfully"
-                    showToast = true
+                    showSuccessToast("OTP Verified Successfully", "Verification")
                     onSuccess(otp)
                 }
                 is NetworkResult.Error -> {
-                    isErrorToast = true
-                    toastMessage = result.message
-                    showToast = true
+                    showErrorToast(result.message, "Verification")
                 }
             }
         }
     }
 
     fun onToastDismissed() {
-        showToast = false
+        dismissToast()
         val nav = pendingNavigation
         pendingNavigation = null
         nav?.invoke()

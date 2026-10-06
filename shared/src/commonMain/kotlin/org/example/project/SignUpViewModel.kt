@@ -14,7 +14,7 @@ import org.example.project.network.NetworkResult
 class SignUpViewModel(
     private val authRepository: AuthRepository,
     private val userRepository: UserRepository
-) : ViewModel() {
+) : BaseViewModel() {
 
 
     init {
@@ -95,7 +95,8 @@ class SignUpViewModel(
         }
     }
 
-    fun clearError() {
+    override fun clearError() {
+        super.clearError()
         _uiState.update { it.copy(error = null) }
     }
 }

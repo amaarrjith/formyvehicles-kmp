@@ -1,6 +1,7 @@
 package org.example.project.data.remote.api
 
 import org.example.project.data.model.AddVehicleRequest
+import org.example.project.data.model.AddVehicleResponse
 import org.example.project.data.model.State
 import org.example.project.data.model.UserDto
 import org.example.project.data.model.UserVehicle
@@ -13,5 +14,5 @@ interface UserApiService {
     suspend fun getUserVehicles(): NetworkResult<List<UserVehicle>>
     suspend fun addUserVehicle(
         request: AddVehicleRequest
-    ): NetworkResult<String>
+    ): NetworkResult<AddVehicleResponse>
 }

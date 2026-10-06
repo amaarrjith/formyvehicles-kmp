@@ -312,6 +312,9 @@ fun HomeScreen(
                 }
             }
         }
+
+        // Global Toast Notification Host for Home screen
+        BaseToastHost(viewModel = viewModel)
     }
 }
 
@@ -615,7 +618,20 @@ fun VehicleCard(
     Card(
         modifier = Modifier
             .fillMaxWidth()
-            .clickable {  },
+            .clickable {
+                onVehicleClick(
+                    Vehicle(
+                        registrationNumber = vehicle.registrationNumber,
+                        vehicleType = vehicle.vehicleType.name,
+                        brand = vehicle.brand.name,
+                        model = vehicle.vehicleModel.name,
+                        year = vehicle.year.toIntOrNull() ?: 0,
+                        fuelType = vehicle.fuelType,
+                        gearType = vehicle.gearType,
+                        imageRes = vehicle.imageUrl
+                    )
+                )
+            },
         shape = RoundedCornerShape(16.dp),
         border = BorderStroke(1.dp, Color(0xFFE2E8F0)),
         colors = CardDefaults.cardColors(containerColor = Color.White)

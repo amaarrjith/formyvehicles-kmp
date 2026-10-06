@@ -56,20 +56,23 @@ object VehicleStatusStore {
 
     fun getStatusList(vehicleFilter: String): List<VehicleStatus> {
         initializeIfNeeded()
-        if (vehicleFilter.isBlank() || vehicleFilter == "All") {
+        val cleanFilter = vehicleFilter.trim()
+        if (cleanFilter.isBlank() || cleanFilter.equals("All", ignoreCase = true) || cleanFilter.equals("All Vehicles", ignoreCase = true)) {
             return store
         }
-        val isSwiftFilter = vehicleFilter.contains("Swift", ignoreCase = true) || vehicleFilter.contains("7004")
-        val isGlamourFilter = vehicleFilter.contains("Glamour", ignoreCase = true) || vehicleFilter.contains("6332")
+
+        val normalizedFilter = cleanFilter.replace(" ", "").replace("%20", "").lowercase()
 
         return store.filter { status ->
-            if (isSwiftFilter && (status.vehicleName.contains("Swift", ignoreCase = true) || status.vehicleName.contains("7004"))) {
-                true
-            } else if (isGlamourFilter && (status.vehicleName.contains("Glamour", ignoreCase = true) || status.vehicleName.contains("6332"))) {
+            val statusVehicle = status.vehicleName.trim()
+            if (statusVehicle.equals("All Vehicles", ignoreCase = true) || statusVehicle.equals("All", ignoreCase = true)) {
                 true
             } else {
-                status.vehicleName.contains(vehicleFilter, ignoreCase = true) ||
-                vehicleFilter.contains(status.vehicleName, ignoreCase = true)
+                val normalizedStatus = statusVehicle.replace(" ", "").lowercase()
+                normalizedStatus.contains(normalizedFilter) ||
+                normalizedFilter.contains(normalizedStatus) ||
+                statusVehicle.contains(cleanFilter, ignoreCase = true) ||
+                cleanFilter.contains(statusVehicle, ignoreCase = true)
             }
         }
     }

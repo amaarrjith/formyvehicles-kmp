@@ -1,5 +1,6 @@
 package org.example.project.domain.repository
 
+import org.example.project.data.model.AddVehicleResponse
 import org.example.project.data.model.State
 import org.example.project.data.model.UserDto
 import org.example.project.data.model.UserVehicle
@@ -18,5 +19,5 @@ interface UserRepository {
         year: String,
         fuelType: String,
         gearType: String
-    ): NetworkResult<String>
+    ): NetworkResult<AddVehicleResponse>
 }

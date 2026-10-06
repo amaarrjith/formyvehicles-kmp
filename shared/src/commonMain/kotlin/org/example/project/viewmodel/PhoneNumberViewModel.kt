@@ -6,6 +6,7 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
+import org.example.project.BaseViewModel
 import org.example.project.model.Country
 import org.example.project.model.CountryPhoneInfo
 import org.example.project.model.PhoneValidationState
@@ -22,7 +23,7 @@ sealed interface CountryPickerUiState {
 class PhoneNumberViewModel(
     private val countryRepository: CountryRepository,
     private val validator: PhoneNumberValidator
-) : ViewModel() {
+) : BaseViewModel() {
 
     private val _countriesState = MutableStateFlow<CountryPickerUiState>(CountryPickerUiState.Loading)
     val countriesState: StateFlow<CountryPickerUiState> = _countriesState.asStateFlow()

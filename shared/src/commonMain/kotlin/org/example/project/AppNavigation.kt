@@ -12,6 +12,17 @@ import androidx.core.bundle.Bundle
 fun AppNavigation() {
     val navController = rememberNavController()
 
+    androidx.compose.runtime.LaunchedEffect(Unit) {
+        org.example.project.manager.AppManager.logoutEvents.collect {
+            navController.navigate(AppScreens.WelcomeScreen.route) {
+                popUpTo(0) {
+                    inclusive = true
+                }
+                launchSingleTop = true
+            }
+        }
+    }
+
     NavHost(
         navController = navController,
         startDestination = AppScreens.Splash.route
@@ -81,7 +92,6 @@ fun AppNavigation() {
             )
         ) { backStackEntry ->
             val rawMobile = backStackEntry.savedStateHandle.get<String>("mobile")
-                ?: backStackEntry.arguments?.getString("mobile")
                 ?: ""
             val mobile = if (rawMobile == "unknown" || rawMobile.isBlank()) {
                 getPersistedString("logged_in_user_mobile") ?: ""
@@ -114,7 +124,7 @@ fun AppNavigation() {
                     // Handle add vehicle action
                 },
                 onVehicleClick = { vehicle ->
-                    navController.navigate("vehicle_status/${vehicle.registrationNumber}")
+                    navController.navigate(AppScreens.vehicleStatus(vehicle.registrationNumber))
                 },
                 onLogoutClick = {
                     setGuestUser(false)
@@ -178,7 +188,7 @@ fun AppNavigation() {
                     navController.popBackStack()
                 },
                 onVehicleClick = { vehicle ->
-                    navController.navigate("vehicle_status/${vehicle.registrationNumber}")
+                    navController.navigate(AppScreens.vehicleStatus(vehicle.registrationNumber))
                 }
             )
         }
@@ -190,7 +200,9 @@ fun AppNavigation() {
                 }
             )
         ) { backStackEntry ->
-            val regNumber = backStackEntry.savedStateHandle.get<String>("regNumber") ?: ""
+            val regNumber = backStackEntry.arguments?.getString("regNumber")
+                ?: backStackEntry.savedStateHandle.get<String>("regNumber")
+                ?: ""
             VehicleStatusScreen(
                 regNumber = regNumber,
                 onBackClick = { navController.popBackStack() }

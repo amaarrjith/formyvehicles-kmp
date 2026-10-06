@@ -23,7 +23,7 @@ data class HomeUiState(
     val errorMessage: String? = null,
     val userName: String = "",
     val vehicleList: List<UserVehicle> = emptyList(),
-    val isSheetOpen: Boolean = false,
+    var isSheetOpen: Boolean = false,
 
     // Loading states for dropdowns
     val isTypesLoading: Boolean = false,
@@ -72,7 +72,7 @@ data class HomeUiState(
 class HomeViewModel(
     private val userRepository: UserRepository,
     private val vehicleRepository: VehicleRepository
-) : ViewModel() {
+) : BaseViewModel() {
 
     private val _uiState = MutableStateFlow(HomeUiState())
     val uiState: StateFlow<HomeUiState> = _uiState.asStateFlow()
@@ -312,10 +312,14 @@ class HomeViewModel(
                 )
                 when(result) {
                     is NetworkResult.Success -> {
-
+                        if(result.data.isVehicleAdded) {
+                            getUserVehicles()
+                            _uiState.update { it.copy(isSheetOpen = false) }
+                            showSuccessToast("${result.data.vehicle.registrationNumber} Added Successfully")
+                        }
                     }
                     is NetworkResult.Error -> {
-
+                        showErrorToast(result.message, "Add Vehicle")
                     }
                 }
             }
@@ -341,5 +345,10 @@ class HomeViewModel(
 //                )
 //            }
         }
+    }
+
+    override fun clearError() {
+        super.clearError()
+        _uiState.update { it.copy(errorMessage = null) }
     }
 }

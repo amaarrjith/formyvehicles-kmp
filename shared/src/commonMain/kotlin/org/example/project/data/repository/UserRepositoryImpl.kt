@@ -1,6 +1,7 @@
 package org.example.project.data.repository
 
 import org.example.project.data.model.AddVehicleRequest
+import org.example.project.data.model.AddVehicleResponse
 import org.example.project.data.model.State
 import org.example.project.data.model.UserDto
 import org.example.project.data.model.UserVehicle
@@ -31,7 +32,7 @@ class UserRepositoryImpl(
         year: String,
         fuelType: String,
         gearType: String
-    ): NetworkResult<String> {
+    ): NetworkResult<AddVehicleResponse> {
         return userApiService.addUserVehicle(
             request = AddVehicleRequest(
                 registrationNumber = registrationNumber,

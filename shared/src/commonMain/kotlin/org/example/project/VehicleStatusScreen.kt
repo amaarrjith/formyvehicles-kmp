@@ -71,17 +71,7 @@ fun VehicleStatusScreen(
     viewModel: VehicleStatusViewModel = org.koin.compose.koinInject()
 ) {
     LaunchedEffect(regNumber) {
-        if (!regNumber.isNullOrBlank()) {
-            val matchedVehicle = viewModel.userVehicles.firstOrNull { 
-                it.registrationNumber.equals(regNumber, ignoreCase = true) 
-            }
-            if (matchedVehicle != null) {
-                viewModel.selectedVehicleFilter = matchedVehicle.registrationNumber
-            }
-        }
-        viewModel.loadStatusList()
-        delay(600)
-        viewModel.uiState = VehicleStatusUiState.Success(viewModel.statusList)
+        viewModel.loadVehiclesAndStatus(regNumber)
     }
 
     val expandedDates = remember { mutableStateMapOf<String, Boolean>() }
@@ -558,7 +548,7 @@ fun VehicleStatusScreen(
                                     // Vehicle Image Thumbnail
                                     Image(
                                         painter = painterResource(
-                                            if (vehicle.vehicleType == "Car") Res.drawable.img_car_swift else Res.drawable.img_bike_glamour
+                                            if (vehicle.vehicleType.contains("Bike", ignoreCase = true) || vehicle.vehicleType.contains("Two", ignoreCase = true)) Res.drawable.img_bike_glamour else Res.drawable.img_car_swift
                                         ),
                                         contentDescription = null,
                                         modifier = Modifier.size(90.dp, 60.dp)
@@ -1146,6 +1136,8 @@ fun VehicleStatusScreen(
                 }
             )
         }
+
+        BaseToastHost(viewModel = viewModel)
     }
 }
 

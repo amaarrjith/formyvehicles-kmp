@@ -3,7 +3,11 @@ package org.example.project
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
-import androidx.lifecycle.ViewModel
+import androidx.lifecycle.viewModelScope
+import kotlinx.coroutines.launch
+import org.example.project.data.model.UserVehicle
+import org.example.project.domain.repository.UserRepository
+import org.example.project.network.NetworkResult
 
 data class VehicleFilterOption(
     val title: String,       // Line 1: e.g. "Swift VXI Hatchback" or "All Vehicles"
@@ -11,7 +15,9 @@ data class VehicleFilterOption(
     val filterKey: String    // unique key e.g. "KL 56 X 7004" or "All"
 )
 
-class VehicleStatusViewModel : ViewModel() {
+class VehicleStatusViewModel(
+    private val userRepository: UserRepository
+) : BaseViewModel() {
     val activeMobile: String
         get() = getPersistedString("logged_in_user_mobile") ?: ""
 
@@ -65,28 +71,20 @@ class VehicleStatusViewModel : ViewModel() {
             return "You'll receive an alert $cycleText on $alertDate$timeText."
         }
 
-    val userVehicles: List<Vehicle> = listOf(
-        Vehicle(
-            registrationNumber = "KL 56 X 7004",
-            vehicleType = "Car",
-            brand = "Maruthi Suzuki",
-            model = "Swift VXI Hatchback",
-            year = 2022,
-            fuelType = "Petrol",
-            gearType = "Automatic",
-            imageRes = "img_car_swift"
-        ),
-        Vehicle(
-            registrationNumber = "KL 56 E 6332",
-            vehicleType = "Bike",
-            brand = "Hero Honda",
-            model = "GLAMOUR 125 Fi",
-            year = 2012,
-            fuelType = "Petrol",
-            gearType = "Manual",
-            imageRes = "img_bike_glamour"
+    var userVehicles by mutableStateOf<List<Vehicle>>(emptyList())
+
+    private fun UserVehicle.toVehicle(): Vehicle {
+        return Vehicle(
+            registrationNumber = registrationNumber,
+            vehicleType = vehicleType.name,
+            brand = brand.name,
+            model = vehicleModel.name,
+            year = year.toIntOrNull() ?: 0,
+            fuelType = fuelType,
+            gearType = gearType,
+            imageRes = imageUrl
         )
-    )
+    }
 
     val filterOptions: List<VehicleFilterOption>
         get() {
@@ -119,11 +117,22 @@ class VehicleStatusViewModel : ViewModel() {
 
     val selectedOption: VehicleFilterOption
         get() {
-            return filterOptions.firstOrNull { 
+            val normalizedSelected = selectedVehicleFilter.replace(" ", "").replace("%20", "").lowercase()
+            val matched = filterOptions.firstOrNull { 
                 it.filterKey == selectedVehicleFilter || 
-                selectedVehicleFilter.contains(it.filterKey, ignoreCase = true) ||
+                (it.filterKey != "All" && it.filterKey.replace(" ", "").equals(normalizedSelected, ignoreCase = true)) ||
                 it.title.contains(selectedVehicleFilter, ignoreCase = true)
-            } ?: filterOptions.firstOrNull() ?: VehicleFilterOption("All Vehicles", "${userVehicles.size} Vehicles", "All")
+            }
+            if (matched != null) return matched
+            if (selectedVehicleFilter != "All" && selectedVehicleFilter.isNotBlank()) {
+                val cleanSubtitle = selectedVehicleFilter.replace("%20", " ")
+                return VehicleFilterOption(
+                    title = "Vehicle",
+                    subtitle = cleanSubtitle,
+                    filterKey = selectedVehicleFilter
+                )
+            }
+            return filterOptions.firstOrNull() ?: VehicleFilterOption("All Vehicles", "${userVehicles.size} Vehicles", "All")
         }
 
     // Dynamic Filter Count Badge calculation
@@ -136,6 +145,62 @@ class VehicleStatusViewModel : ViewModel() {
             return count
         }
 
+    fun loadVehiclesAndStatus(targetRegNumber: String? = null) {
+        viewModelScope.launch {
+            uiState = VehicleStatusUiState.Loading
+
+            val cleanTarget = targetRegNumber?.trim()?.takeIf {
+                it.isNotEmpty() && !it.equals("all", ignoreCase = true)
+            }
+            if (cleanTarget != null) {
+                selectedVehicleFilter = cleanTarget
+                tempSelectedVehicleFilter = cleanTarget
+            }
+
+            when (val result = userRepository.getUserVehicles()) {
+                is NetworkResult.Success -> {
+                    val vehicles = result.data.map { it.toVehicle() }
+                    userVehicles = vehicles
+
+                    if (cleanTarget != null) {
+                        val normalizedTarget = cleanTarget.replace(" ", "").replace("%20", "").lowercase()
+                        val matched = vehicles.firstOrNull {
+                            it.registrationNumber.equals(cleanTarget, ignoreCase = true) ||
+                            it.registrationNumber.replace(" ", "").equals(normalizedTarget, ignoreCase = true)
+                        }
+                        if (matched != null) {
+                            selectedVehicleFilter = matched.registrationNumber
+                            tempSelectedVehicleFilter = matched.registrationNumber
+                            vehicleAssociation = "${matched.brand} ${matched.model} (${matched.registrationNumber})"
+                        } else {
+                            val decoded = cleanTarget.replace("%20", " ")
+                            selectedVehicleFilter = decoded
+                            tempSelectedVehicleFilter = decoded
+                            vehicleAssociation = decoded
+                        }
+                    } else if (selectedVehicleFilter != "All") {
+                        val normalizedCurrent = selectedVehicleFilter.replace(" ", "").replace("%20", "").lowercase()
+                        val matched = vehicles.firstOrNull {
+                            it.registrationNumber.equals(selectedVehicleFilter, ignoreCase = true) ||
+                            it.registrationNumber.replace(" ", "").equals(normalizedCurrent, ignoreCase = true)
+                        }
+                        if (matched != null) {
+                            selectedVehicleFilter = matched.registrationNumber
+                            tempSelectedVehicleFilter = matched.registrationNumber
+                            vehicleAssociation = "${matched.brand} ${matched.model} (${matched.registrationNumber})"
+                        }
+                    }
+                }
+                is NetworkResult.Error -> {
+                    showErrorToast(result.message ?: "Failed to fetch vehicles")
+                }
+            }
+
+            loadStatusList()
+            uiState = VehicleStatusUiState.Success(statusList)
+        }
+    }
+
     fun openChooseVehicleSheet() {
         tempSelectedVehicleFilter = selectedVehicleFilter
         isChooseVehicleSheetOpen = true
@@ -143,13 +208,19 @@ class VehicleStatusViewModel : ViewModel() {
 
     fun applyChooseVehicleSelection() {
         selectedVehicleFilter = tempSelectedVehicleFilter
+        val matched = userVehicles.firstOrNull { it.registrationNumber == selectedVehicleFilter }
+        if (matched != null) {
+            vehicleAssociation = "${matched.brand} ${matched.model} (${matched.registrationNumber})"
+        } else if (selectedVehicleFilter == "All") {
+            vehicleAssociation = "All Vehicles"
+        }
         loadStatusList()
+        uiState = VehicleStatusUiState.Success(statusList)
         isChooseVehicleSheetOpen = false
     }
 
     fun loadStatusList() {
         statusList = VehicleStatusStore.getStatusList(selectedVehicleFilter)
-        uiState = VehicleStatusUiState.Success(statusList)
         if (vehicleAssociation.isEmpty()) {
             vehicleAssociation = "All Vehicles"
         }
@@ -178,10 +249,12 @@ class VehicleStatusViewModel : ViewModel() {
         )
         VehicleStatusStore.addStatus(newStatus)
         loadStatusList()
+        uiState = VehicleStatusUiState.Success(statusList)
 
         // Reset fields to default
         statusTitle = ""
-        vehicleAssociation = "All Vehicles"
+        val matched = userVehicles.firstOrNull { it.registrationNumber == selectedVehicleFilter }
+        vehicleAssociation = if (matched != null) "${matched.brand} ${matched.model} (${matched.registrationNumber})" else "All Vehicles"
         statusType = "Alert"
         infoDate = todayDateString
         alertDate = ""

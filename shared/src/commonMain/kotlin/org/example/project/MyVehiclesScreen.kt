@@ -41,79 +41,92 @@ fun MyVehiclesScreen(
     val uiState by viewModel.uiState.collectAsState()
 
     LaunchedEffect(Unit) {
-        viewModel.refreshUser()
+        viewModel.getUserVehicles()
     }
 
-    Column(
-        modifier = modifier
-            .fillMaxSize()
-            .background(Color(0xFFFAFBFC))
-            .statusBarsPadding()
-            .navigationBarsPadding()
-            .padding(horizontal = 20.dp, vertical = 14.dp)
-    ) {
-        // Header Row with Back Button
-        Row(
+    Box(modifier = modifier.fillMaxSize()) {
+        Column(
             modifier = Modifier
-                .fillMaxWidth()
-                .padding(bottom = 16.dp),
-            verticalAlignment = Alignment.CenterVertically
+                .fillMaxSize()
+                .background(Color(0xFFFAFBFC))
+                .statusBarsPadding()
+                .navigationBarsPadding()
+                .padding(horizontal = 20.dp, vertical = 14.dp)
         ) {
-            AppBackButton {
-                onBackClick()
-            }
-        }
-
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(bottom = 16.dp),
-            horizontalArrangement = Arrangement.SpaceBetween,
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            Column {
-                Text(
-                    text = "My Vehicles",
-                    fontSize = 28.sp,
-                    fontWeight = FontWeight.Bold,
-                    color = Color(0xFF1E293B)
-                )
-                Spacer(modifier = Modifier.height(2.dp))
-                Text(
-                    text = "${uiState.vehicleList.size} Vehicles in your garage",
-                    fontSize = 14.sp,
-                    color = Color(0xFF64748B)
-                )
-            }
-        }
-
-        if (uiState.vehicleList.isEmpty()) {
-            Box(
+            // Header Row with Back Button
+            Row(
                 modifier = Modifier
-                    .weight(1f)
-                    .fillMaxWidth(),
-                contentAlignment = Alignment.Center
+                    .fillMaxWidth()
+                    .padding(bottom = 16.dp),
+                verticalAlignment = Alignment.CenterVertically
             ) {
-                Text(
-                    text = "No vehicles found in your garage.",
-                    fontSize = 16.sp,
-                    color = Color(0xFF64748B)
-                )
+                AppBackButton {
+                    onBackClick()
+                }
             }
-        } else {
-            LazyColumn(
-                modifier = Modifier.weight(1f),
-                verticalArrangement = Arrangement.spacedBy(16.dp),
-                contentPadding = PaddingValues(bottom = 20.dp)
+
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(bottom = 16.dp),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
             ) {
-                items(uiState.vehicleList, key = { it.registrationNumber }) { vehicle ->
-                    VehicleCard(
-                        vehicle = vehicle,
-                        onDeleteClick = {  },
-                        onVehicleClick = onVehicleClick
+                Column {
+                    Text(
+                        text = "My Vehicles",
+                        fontSize = 28.sp,
+                        fontWeight = FontWeight.Bold,
+                        color = Color(0xFF1E293B)
+                    )
+                    Spacer(modifier = Modifier.height(2.dp))
+                    Text(
+                        text = "${uiState.vehicleList.size} Vehicles in your garage",
+                        fontSize = 14.sp,
+                        color = Color(0xFF64748B)
                     )
                 }
             }
+
+            if (uiState.isLoading) {
+                Box(
+                    modifier = Modifier
+                        .weight(1f)
+                        .fillMaxWidth(),
+                    contentAlignment = Alignment.Center
+                ) {
+                    AppLoader(message = "Loading your vehicles...")
+                }
+            } else if (uiState.vehicleList.isEmpty()) {
+                Box(
+                    modifier = Modifier
+                        .weight(1f)
+                        .fillMaxWidth(),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Text(
+                        text = uiState.errorMessage ?: "No vehicles found in your garage.",
+                        fontSize = 16.sp,
+                        color = Color(0xFF64748B)
+                    )
+                }
+            } else {
+                LazyColumn(
+                    modifier = Modifier.weight(1f),
+                    verticalArrangement = Arrangement.spacedBy(16.dp),
+                    contentPadding = PaddingValues(bottom = 20.dp)
+                ) {
+                    items(uiState.vehicleList, key = { it.registrationNumber }) { vehicle ->
+                        VehicleCard(
+                            vehicle = vehicle,
+                            onDeleteClick = { },
+                            onVehicleClick = onVehicleClick
+                        )
+                    }
+                }
+            }
         }
+
+        BaseToastHost(viewModel = viewModel)
     }
 }

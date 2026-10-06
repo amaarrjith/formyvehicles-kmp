@@ -70,13 +70,19 @@ data class OTPResponse(
 
 @Serializable
 data class TokenRefreshRequest(
-    val refreshToken: String
+    val refresh: String,
+    @SerialName("refresh_token")
+    val refreshToken: String = refresh
 )
 
 @Serializable
 data class AuthResponse(
     val access: String? = null,
     val refresh: String? = null,
+    @SerialName("access_token")
+    val accessToken: String? = null,
+    @SerialName("refresh_token")
+    val refreshToken: String? = null,
     val tokenExpiry: Long? = null,
     val user: UserDto? = null
 )
