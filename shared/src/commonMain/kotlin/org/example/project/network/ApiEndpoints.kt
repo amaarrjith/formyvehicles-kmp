@@ -14,4 +14,5 @@ object ApiEndpoints {
     const val VEHICLE_TYPES = "vehicle/vehicle-types"
     const val VEHICLE_BRANDS = "vehicle/vehicle-brands"
     const val VEHICLE_MODELS = "vehicle/vehicle-models"
+    const val GENERIC_CONTENT = "generic/app-policy"
 }

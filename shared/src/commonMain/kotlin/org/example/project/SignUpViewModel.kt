@@ -43,16 +43,24 @@ class SignUpViewModel(
         _uiState.update { it.copy(isLoading = true) }
         viewModelScope.launch {
             val currentState = uiState.value
-            if (currentState.name.isEmpty()) {
-                _uiState.update { it.copy(error = "Name is Required", isLoading = false) }
+            if (currentState.name.isBlank()) {
+                showErrorToast("Please enter your name.", "Sign Up")
+                _uiState.update { it.copy(isLoading = false, error = "Name is Required") }
                 return@launch
             }
-            if (currentState.selectedState.isNullOrEmpty()) {
-                _uiState.update { it.copy(error = "State is Required", isLoading = false) }
+            if (currentState.selectedState.isNullOrBlank()) {
+                showErrorToast("Please select your state.", "Sign Up")
+                _uiState.update { it.copy(isLoading = false, error = "State is Required") }
                 return@launch
             }
-            if (currentState.phone.isEmpty()) {
-                _uiState.update { it.copy(error = "Phone is Required", isLoading = false) }
+            if (currentState.phone.isBlank()) {
+                showErrorToast("Please enter your phone number.", "Sign Up")
+                _uiState.update { it.copy(isLoading = false, error = "Phone is Required") }
+                return@launch
+            }
+            if (!currentState.isTermsAccepted) {
+                showErrorToast("Please accept the Terms & Conditions to proceed.", "Sign Up")
+                _uiState.update { it.copy(isLoading = false, error = "Please accept terms") }
                 return@launch
             }
             val selectedStateObj = currentState.states.find { it.name == currentState.selectedState }
@@ -60,22 +68,23 @@ class SignUpViewModel(
             val stateName = selectedStateObj?.name ?: currentState.selectedState ?: "Kerala"
 
             val result = authRepository.register(
-                name = currentState.name,
+                name = currentState.name.trim(),
                 stateId = stateId,
                 state = stateName,
                 countryCode = "+91",
-                mobileNumber = currentState.phone,
+                mobileNumber = currentState.phone.trim(),
                 agreedTerms = currentState.isTermsAccepted
             )
             when (result) {
                 is NetworkResult.Success -> {
-                    val mobile = result.data.user?.mobileNumber?.takeIf { it.isNotBlank() } ?: currentState.phone
+                    val mobile = result.data.user?.mobileNumber?.takeIf { it.isNotBlank() } ?: currentState.phone.trim()
                     setPersistedString("logged_in_user_mobile", mobile)
                     _uiState.update { it.copy(isLoading = false, isSuccess = true) }
                     onSuccess(mobile)
                 }
                 is NetworkResult.Error -> {
-                    _uiState.update { it.copy(error = result.message, isLoading = false) }
+                    showErrorToast(result.message, "Sign Up Failed")
+                    _uiState.update { it.copy(isLoading = false, error = result.message) }
                 }
             }
         }

@@ -15,6 +15,7 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
+import androidx.compose.foundation.text.ClickableText
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Checkbox
@@ -25,12 +26,14 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.text.SpanStyle
+import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.buildAnnotatedString
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.withStyle
@@ -44,6 +47,7 @@ import org.example.project.viewmodel.PhoneNumberViewModel
  *
  * @param onNavigateToLogin Callback to navigate to the Login screen.
  * @param onSignUpSuccess Callback invoked when the user successfully registers.
+ * @param onNavigateToTermsAndPrivacy Callback invoked when user clicks Terms or Privacy links.
  * @param modifier Layout modifier.
  */
 @Composable
@@ -51,11 +55,13 @@ import org.example.project.viewmodel.PhoneNumberViewModel
 fun SignUpScreen(
     onNavigateToLogin: () -> Unit,
     onSignUpSuccess: (String) -> Unit,
+    onNavigateToTermsAndPrivacy: (String) -> Unit = {},
     modifier: Modifier = Modifier,
     viewModel: SignUpViewModel = org.koin.compose.koinInject(),
     phoneViewModel: PhoneNumberViewModel = org.koin.compose.koinInject()
 ) {
     val focusManager = LocalFocusManager.current
+    val keyboardController = androidx.compose.ui.platform.LocalSoftwareKeyboardController.current
     val selectedCountry by phoneViewModel.selectedCountry.collectAsState()
     val countriesState by phoneViewModel.countriesState.collectAsState()
     val searchQuery by phoneViewModel.searchQuery.collectAsState()
@@ -160,9 +166,7 @@ fun SignUpScreen(
                 // Terms and Privacy Checkbox Row
                 Row(
                     verticalAlignment = Alignment.CenterVertically,
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .clickable { viewModel.onTermsAcceptedChange(!uiState.isTermsAccepted) }
+                    modifier = Modifier.fillMaxWidth()
                 ) {
                     Checkbox(
                         checked = uiState.isTermsAccepted,
@@ -174,56 +178,61 @@ fun SignUpScreen(
                         )
                     )
                     Spacer(modifier = Modifier.width(6.dp))
-                    val termsText = buildAnnotatedString {
-                        append("I've read and agree with the ")
-                        withStyle(style = SpanStyle(color = Color(0xFF6366F1), fontWeight = FontWeight.Medium)) {
-                            append("Terms and Conditions")
-                        }
-                        append(" and the ")
-                        withStyle(style = SpanStyle(color = Color(0xFF6366F1), fontWeight = FontWeight.Medium)) {
-                            append("Privacy Policy.")
+                    val termsText = remember {
+                        buildAnnotatedString {
+                            append("I've read and agree with the ")
+                            pushStringAnnotation(tag = "TERMS", annotation = "terms")
+                            withStyle(style = SpanStyle(color = Color(0xFF6366F1), fontWeight = FontWeight.SemiBold)) {
+                                append("Terms and Conditions")
+                            }
+                            pop()
+                            append(" and the ")
+                            pushStringAnnotation(tag = "PRIVACY", annotation = "privacy")
+                            withStyle(style = SpanStyle(color = Color(0xFF6366F1), fontWeight = FontWeight.SemiBold)) {
+                                append("Privacy Policy.")
+                            }
+                            pop()
                         }
                     }
-                    Text(
+                    @Suppress("DEPRECATION")
+                    ClickableText(
                         text = termsText,
-                        fontSize = 13.sp,
-                        color = Color(0xFF334155),
+                        style = TextStyle(
+                            fontSize = 13.sp,
+                            color = Color(0xFF334155),
+                            letterSpacing = 0.01.em
+                        ),
                         modifier = Modifier.weight(1f),
-                        letterSpacing = 0.01.em
+                        onClick = { offset ->
+                            val termsClicked = termsText.getStringAnnotations(tag = "TERMS", start = offset, end = offset).isNotEmpty()
+                            val privacyClicked = termsText.getStringAnnotations(tag = "PRIVACY", start = offset, end = offset).isNotEmpty()
+                            if (termsClicked) {
+                                onNavigateToTermsAndPrivacy("terms")
+                            } else if (privacyClicked) {
+                                onNavigateToTermsAndPrivacy("privacy")
+                            } else {
+                                viewModel.onTermsAcceptedChange(!uiState.isTermsAccepted)
+                            }
+                        }
                     )
                 }
 
                 Spacer(modifier = Modifier.height(48.dp))
 
-                Button(
+
+                AppPrimaryButton(
+                    title = "Send OTP",
+                    enabled = !uiState.isLoading,
+                    isLoading = uiState.isLoading,
                     onClick = {
+                        keyboardController?.hide()
+                        focusManager.clearFocus()
                         viewModel.onSignUpClick(onSignUpSuccess)
-                    },
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .height(54.dp),
-                    shape = RoundedCornerShape(28.dp),
-                    colors = ButtonDefaults.buttonColors(
-                        containerColor = Color(0xFF6338F6)
-                    )
-                ) {
-                    Text(
-                        text = "Send OTP",
-                        color = Color.White,
-                        fontSize = 16.sp,
-                        fontWeight = FontWeight.Bold,
-                        letterSpacing = 0.01.em
-                    )
-                }
+                    }
+                )
             }
         }
 
-        ToastHost(
-            visible = uiState.error != null,
-            type = ToastType.ERROR,
-            title = "Error",
-            message = uiState.error ?: "",
-            onDismiss = { viewModel.clearError() }
-        )
+        BaseToastHost(viewModel = viewModel)
     }
 }

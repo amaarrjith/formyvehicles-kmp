@@ -102,7 +102,7 @@ fun BaseToastHost(
                 ToastType.INFO -> "Info"
             }
         },
-        message = viewModel.toastMessage,
+        message = viewModel.toastMessage.ifBlank { viewModel.errorMessage ?: "" },
         onDismiss = { viewModel.dismissToast() },
         modifier = modifier
     )

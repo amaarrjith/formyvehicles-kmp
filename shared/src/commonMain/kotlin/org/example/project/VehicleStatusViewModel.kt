@@ -250,6 +250,7 @@ class VehicleStatusViewModel(
         VehicleStatusStore.addStatus(newStatus)
         loadStatusList()
         uiState = VehicleStatusUiState.Success(statusList)
+        showSuccessToast("Status added successfully", "Vehicle Status")
 
         // Reset fields to default
         statusTitle = ""

@@ -20,8 +20,10 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.HorizontalDivider
@@ -246,8 +248,21 @@ fun Modifier.shadowCircle(color: Color): Modifier = this.then(
 fun SettingsScreen(
     onLogoutClick: () -> Unit,
     onBackClick: (() -> Unit)? = null,
+    onTermsAndPrivacyClick: (String) -> Unit = {},
     modifier: Modifier = Modifier
 ) {
+    val user = remember { getLoggedInUser() }
+    val userName = remember(user) {
+        user?.name?.takeIf { it.isNotBlank() } ?: getPersistedString("logged_in_user_name")?.takeIf { it.isNotBlank() } ?: "User Profile"
+    }
+    val userMobile = remember(user) {
+        val num = user?.mobileNumber?.takeIf { it.isNotBlank() } ?: getPersistedString("logged_in_user_mobile")?.takeIf { it.isNotBlank() }
+        if (num != null) {
+            val code = user?.countryCode?.takeIf { it.isNotBlank() } ?: "+91"
+            "$code $num"
+        } else null
+    }
+
     Column(
         modifier = modifier
             .fillMaxSize()
@@ -255,6 +270,7 @@ fun SettingsScreen(
             .statusBarsPadding()
             .navigationBarsPadding()
             .padding(horizontal = 24.dp, vertical = 16.dp)
+            .verticalScroll(rememberScrollState())
     ) {
         if (onBackClick != null) {
             Row(
@@ -270,16 +286,95 @@ fun SettingsScreen(
         }
 
         Text(
-            text = "Settings",
+            text = "Profile & Settings",
             fontSize = 28.sp,
             fontWeight = FontWeight.Bold,
             color = Color(0xFF1E293B)
         )
-        Spacer(modifier = Modifier.height(20.dp))
-        
+        Spacer(modifier = Modifier.height(18.dp))
+
+        // Profile Details Card
+        Card(
+            modifier = Modifier.fillMaxWidth(),
+            shape = RoundedCornerShape(16.dp),
+            border = BorderStroke(1.dp, Color(0xFFE2E8F0)),
+            colors = CardDefaults.cardColors(containerColor = Color(0xFFF8FAFC))
+        ) {
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(16.dp),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Box(
+                    modifier = Modifier
+                        .size(50.dp)
+                        .background(Color(0xFFEEF2F6), CircleShape),
+                    contentAlignment = Alignment.Center
+                ) {
+                    val initials = remember(userName) {
+                        val trimmed = userName.trim()
+                        if (trimmed.isEmpty()) "U"
+                        else {
+                            val parts = trimmed.split("\\s+".toRegex())
+                            if (parts.size == 1) parts[0].take(2).uppercase()
+                            else (parts[0].take(1) + parts[1].take(1)).uppercase()
+                        }
+                    }
+                    Text(
+                        text = initials,
+                        color = Color(0xFF6366F1),
+                        fontSize = 18.sp,
+                        fontWeight = FontWeight.Bold
+                    )
+                }
+                Spacer(modifier = Modifier.width(14.dp))
+                Column(modifier = Modifier.weight(1f)) {
+                    Text(
+                        text = userName,
+                        fontSize = 17.sp,
+                        fontWeight = FontWeight.Bold,
+                        color = Color(0xFF1E293B)
+                    )
+                    if (userMobile != null) {
+                        Spacer(modifier = Modifier.height(2.dp))
+                        Text(
+                            text = userMobile,
+                            fontSize = 13.sp,
+                            color = Color(0xFF64748B)
+                        )
+                    }
+                }
+            }
+        }
+
+        Spacer(modifier = Modifier.height(24.dp))
+
+        Text(
+            text = "Legal & Policies",
+            fontSize = 14.sp,
+            fontWeight = FontWeight.SemiBold,
+            color = Color(0xFF64748B)
+        )
+        Spacer(modifier = Modifier.height(10.dp))
+
         Column(
             verticalArrangement = Arrangement.spacedBy(12.dp)
         ) {
+            SettingMenuItem(
+                title = "Terms & Conditions",
+                subtitle = "Read our terms of service and usage rules",
+                onClick = { onTermsAndPrivacyClick("terms") }
+            )
+
+            SettingMenuItem(
+                title = "Privacy Policy",
+                subtitle = "Learn how we protect and manage your data",
+                onClick = { onTermsAndPrivacyClick("privacy") }
+            )
+
+            Spacer(modifier = Modifier.height(4.dp))
+
             // Red Logout button card
             Card(
                 modifier = Modifier

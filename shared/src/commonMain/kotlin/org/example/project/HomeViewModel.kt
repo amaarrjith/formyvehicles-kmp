@@ -132,6 +132,7 @@ class HomeViewModel(
                 }
                 is NetworkResult.Error -> {
                     _uiState.update { it.copy(isLoading = false, errorMessage = result.message) }
+                    showErrorToast(result.message, "Vehicles")
                 }
             }
         }

@@ -70,6 +70,7 @@ import formyvehiclesai.shared.generated.resources.us_4
 import io.ktor.http.ContentType
 import org.example.project.AppCarousel
 import org.example.project.AppSearchField
+import org.example.project.BaseToastHost
 import org.example.project.viewmodel.OthersViewModel
 import org.jetbrains.compose.resources.DrawableResource
 import org.jetbrains.compose.resources.painterResource
@@ -84,13 +85,14 @@ fun OthersScreen(
     val address = viewModel.userAddress
     val isLoading = viewModel.isLoading
     var searchText by remember { mutableStateOf("") }
-    Column(
-        modifier = modifier
-            .fillMaxSize()
-            .background(Color(0xFFFAFBFC))
-            .statusBarsPadding()
-            .padding(horizontal = 20.dp, vertical = 12.dp)
-    ) {
+    Box(modifier = modifier.fillMaxSize()) {
+        Column(
+            modifier = Modifier
+                .fillMaxSize()
+                .background(Color(0xFFFAFBFC))
+                .statusBarsPadding()
+                .padding(horizontal = 20.dp, vertical = 12.dp)
+        ) {
         Row(
             modifier = Modifier.fillMaxWidth(),
             verticalAlignment = Alignment.CenterVertically
@@ -290,6 +292,9 @@ fun OthersScreen(
             )
         }
     }
+
+    BaseToastHost(viewModel = viewModel)
+}
 }
 
 @Composable

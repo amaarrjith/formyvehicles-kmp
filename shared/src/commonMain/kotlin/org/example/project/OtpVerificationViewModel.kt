@@ -30,6 +30,7 @@ class OtpVerificationViewModel(
     // 2-minute countdown timer (120 seconds)
     var timerSeconds by mutableStateOf(120)
     private var timerJob: Job? = null
+    var isLoading by mutableStateOf(false)
 
     init {
         startResendTimer()
@@ -56,10 +57,8 @@ class OtpVerificationViewModel(
 
     fun onResendClick(onResendCallback: () -> Unit) {
         if (timerSeconds == 0) {
-            toastMessage = "OTP code resent successfully!"
-            isErrorToast = false
+            showSuccessToast("OTP code resent successfully!", "OTP Sent")
             pendingNavigation = null
-            showToast = true
             startResendTimer()
             onResendCallback()
         }
@@ -71,11 +70,17 @@ class OtpVerificationViewModel(
 
     fun verifyOtp(mobileNumber: String, onSuccess: (String) -> Unit) {
         val otp = getOtp()
+        if (otp.length < 4) {
+            showErrorToast("Please enter the complete 4-digit OTP.", "Verification")
+            return
+        }
+        isLoading = true
         viewModelScope.launch {
             val result = authRepository.verifyOTP(
                 mobileNumber,
                 code = otp
             )
+            isLoading = false
             when(result) {
                 is NetworkResult.Success -> {
                     val response = result.data

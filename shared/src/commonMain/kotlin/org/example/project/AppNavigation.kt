@@ -79,6 +79,9 @@ fun AppNavigation() {
                 },
                 onSignUpSuccess = { mobile ->
                     navController.navigate(AppScreens.otpVerification(mobile))
+                },
+                onNavigateToTermsAndPrivacy = { tab ->
+                    navController.navigate(AppScreens.termsAndPrivacy(tab))
                 }
             )
         }
@@ -172,6 +175,9 @@ fun AppNavigation() {
                 },
                 onBackClick = {
                     navController.popBackStack()
+                },
+                onTermsAndPrivacyClick = { tab ->
+                    navController.navigate(AppScreens.termsAndPrivacy(tab))
                 }
             )
         }
@@ -205,6 +211,23 @@ fun AppNavigation() {
                 ?: ""
             VehicleStatusScreen(
                 regNumber = regNumber,
+                onBackClick = { navController.popBackStack() }
+            )
+        }
+        composable(
+            route = AppScreens.PrivacyPolicy.route,
+            arguments = listOf(
+                androidx.navigation.navArgument("tab") {
+                    type = androidx.navigation.NavType.StringType
+                    defaultValue = "privacy"
+                }
+            )
+        ) { backStackEntry ->
+            val tab = backStackEntry.arguments?.getString("tab")
+                ?: backStackEntry.savedStateHandle.get<String>("tab")
+                ?: "privacy"
+            PrivacyPolicyScreen(
+                initialTab = tab,
                 onBackClick = { navController.popBackStack() }
             )
         }

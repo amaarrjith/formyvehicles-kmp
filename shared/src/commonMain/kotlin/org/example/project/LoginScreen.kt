@@ -48,6 +48,7 @@ import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.layout.imePadding
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalFocusManager
+import androidx.compose.ui.platform.LocalSoftwareKeyboardController
 import androidx.compose.runtime.LaunchedEffect
 import kotlinx.coroutines.delay
 import androidx.compose.ui.unit.dp
@@ -71,21 +72,15 @@ fun LoginScreen(
     phoneViewModel: PhoneNumberViewModel = org.koin.compose.koinInject()
 ) {
     val focusManager = LocalFocusManager.current
+    val keyboardController = LocalSoftwareKeyboardController.current
     val selectedCountry by phoneViewModel.selectedCountry.collectAsState()
     val countriesState by phoneViewModel.countriesState.collectAsState()
     val searchQuery by phoneViewModel.searchQuery.collectAsState()
     val validationInfo by phoneViewModel.validationInfo.collectAsState()
-
+    val uiState by viewModel.uiState.collectAsState()
     // Disable back swipe / back press on LoginScreen
     AppBackHandler(enabled = true) {
         // Do nothing on back gesture to prevent returning to previous screen
-    }
-
-    LaunchedEffect(viewModel.showToast) {
-        if (viewModel.showToast) {
-            delay(3000)
-            viewModel.showToast = false
-        }
     }
 
     Scaffold(
@@ -167,37 +162,26 @@ fun LoginScreen(
 
             Spacer(modifier = Modifier.height(40.dp))
 
-            Button(
+            AppPrimaryButton(
+                title = "Continue",
+                enabled = !uiState.isLoading,
+                isLoading = uiState.isLoading,
                 onClick = {
-                    if (validationInfo.state == PhoneValidationState.Valid) {
-                        focusManager.clearFocus()
+                    keyboardController?.hide()
+                    focusManager.clearFocus()
+                    if (viewModel.mobileNumber.isBlank()) {
+                        viewModel.showErrorToast("Please enter your mobile number.", "Login")
+                    } else if (validationInfo.state != PhoneValidationState.Valid) {
+                        viewModel.showErrorToast("Please enter a valid mobile number.", "Invalid Number")
+                    } else {
                         viewModel.onContinueClick(onLoginSuccess)
                     }
-                },
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .height(54.dp),
-                enabled = validationInfo.state == PhoneValidationState.Valid,
-                shape = RoundedCornerShape(28.dp),
-                colors = ButtonDefaults.buttonColors(
-                    containerColor = Color(0xFF6338F6)
-                )
-            ) {
-                Text(
-                    text = "Continue",
-                    color = Color.White,
-                    fontSize = 16.sp,
-                    fontWeight = FontWeight.Bold
-                )
-            }
+                }
+            )
             }
 
-            ToastHost(
-                visible = viewModel.showToast,
-                type = ToastType.ERROR,
-                title = "Validation Error",
-                message = viewModel.toastMessage,
-                onDismiss = { viewModel.showToast = false }
+            BaseToastHost(
+                viewModel
             )
         }
     }

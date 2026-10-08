@@ -42,6 +42,7 @@ import androidx.compose.ui.input.key.onKeyEvent
 import androidx.compose.ui.input.key.type
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalFocusManager
+import androidx.compose.ui.platform.LocalSoftwareKeyboardController
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.style.TextAlign
@@ -77,16 +78,10 @@ fun OtpVerificationScreen(
     }
 
     val focusManager = LocalFocusManager.current
+    val keyboardController = LocalSoftwareKeyboardController.current
 
     LaunchedEffect(Unit) {
         focusRequester1.requestFocus()
-    }
-
-    LaunchedEffect(viewModel.showToast) {
-        if (viewModel.showToast) {
-            delay(3000)
-            viewModel.onToastDismissed()
-        }
     }
 
     Box(modifier = Modifier.fillMaxSize()) {
@@ -253,42 +248,26 @@ fun OtpVerificationScreen(
 
                 Spacer(modifier = Modifier.height(48.dp))
 
-                Button(
+                AppPrimaryButton(
+                    title = "Verify & Continue",
+                    enabled = !viewModel.isLoading,
+                    isLoading = viewModel.isLoading,
                     onClick = {
+                        keyboardController?.hide()
+                        focusManager.clearFocus()
                         if (isOtpComplete) {
                             viewModel.verifyOtp(mobileNumber = emailOrPhone) { verifiedOtp ->
                                 onVerifyClick(verifiedOtp)
                             }
+                        } else {
+                            viewModel.showErrorToast("Please enter the complete 4-digit OTP.", "OTP Required")
                         }
-                    },
-                    enabled = isOtpComplete,
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .height(54.dp),
-                    shape = RoundedCornerShape(28.dp),
-                    colors = ButtonDefaults.buttonColors(
-                        containerColor = Color(0xFF6338F6),
-                        disabledContainerColor = Color(0xFFE2E8F0),
-                        contentColor = Color.White,
-                        disabledContentColor = Color(0xFF94A3B8)
-                    )
-                ) {
-                    Text(
-                        text = "Verify & Continue",
-                        fontSize = 16.sp,
-                        fontWeight = FontWeight.Bold
-                    )
-                }
+                    }
+                )
             }
         }
 
-        ToastHost(
-            visible = viewModel.showToast,
-            type = if (viewModel.isErrorToast) ToastType.ERROR else ToastType.SUCCESS,
-            title = if (viewModel.isErrorToast) "Verification Failed" else "OTP Verification",
-            message = viewModel.toastMessage,
-            onDismiss = { viewModel.onToastDismissed() }
-        )
+        BaseToastHost(viewModel = viewModel)
     }
 }
 

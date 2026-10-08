@@ -5,6 +5,8 @@ import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.animation.slideInHorizontally
 import androidx.compose.animation.slideOutHorizontally
+import androidx.compose.animation.slideInVertically
+import androidx.compose.animation.slideOutVertically
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
@@ -15,6 +17,7 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
@@ -59,7 +62,8 @@ data class ToastData(
 
 /**
  * Composable container that hosts the Toast notifications and animates them
- * into the bottom-left corner of the screen when [visible] is true.
+ * smoothly from the bottom center of the screen when [visible] is true.
+ * Automatically respects IME keyboard padding and navigation bars.
  *
  * @param visible If true, the toast is visible.
  * @param type The type of toast (INFO, ERROR, SUCCESS).
@@ -79,21 +83,22 @@ fun ToastHost(
 ) {
     LaunchedEffect(visible, message) {
         if (visible) {
-            delay(3_000.milliseconds)
+            delay(3_500.milliseconds)
             onDismiss()
         }
     }
     Box(
         modifier = modifier
             .fillMaxSize()
-            .padding(24.dp)
-            .navigationBarsPadding(),
-        contentAlignment = Alignment.BottomStart
+            .padding(horizontal = 20.dp, vertical = 20.dp)
+            .navigationBarsPadding()
+            .imePadding(),
+        contentAlignment = Alignment.BottomCenter
     ) {
         AnimatedVisibility(
             visible = visible,
-            enter = slideInHorizontally(initialOffsetX = { -it }) + fadeIn(),
-            exit = slideOutHorizontally(targetOffsetX = { -it }) + fadeOut()
+            enter = slideInVertically(initialOffsetY = { it }) + fadeIn(),
+            exit = slideOutVertically(targetOffsetY = { it }) + fadeOut()
         ) {
             ToastCard(
                 toast = ToastData(type = type, title = title, message = message),
@@ -111,8 +116,9 @@ fun ToastCard(
 ) {
     Surface(
         modifier = modifier
-            .widthIn(max = 340.dp)
-            .shadow(8.dp, RoundedCornerShape(16.dp)),
+            .fillMaxWidth()
+            .widthIn(max = 420.dp)
+            .shadow(12.dp, RoundedCornerShape(16.dp)),
         shape = RoundedCornerShape(16.dp),
         color = Color(0xFF0F172A) // Slate-900 dark background
     ) {
