@@ -36,7 +36,10 @@ fun AppDatePicker(
     modifier: Modifier = Modifier
 ) {
     var showDatePicker by remember { mutableStateOf(false) }
-    val datePickerState = rememberDatePickerState()
+    val initialMillis = remember(value) { utcMillisFromDateString(value) }
+    val datePickerState = rememberDatePickerState(
+        initialSelectedDateMillis = initialMillis
+    )
 
     if (showDatePicker) {
         DatePickerDialog(
@@ -44,9 +47,7 @@ fun AppDatePicker(
             confirmButton = {
                 TextButton(onClick = {
                     datePickerState.selectedDateMillis?.let { millis ->
-                        val epochDay1970 = (millis / 86400000L).toInt()
-                        val customEpochDays = epochDay1970 - 18262 + 1
-                        val formatted = dateStringFromEpochDays(customEpochDays)
+                        val formatted = dateStringFromUtcMillis(millis)
                         onDateSelected(formatted)
                     }
                     showDatePicker = false

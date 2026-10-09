@@ -1,13 +1,14 @@
+
 package org.example.project
 
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
-import androidx.compose.animation.slideInHorizontally
-import androidx.compose.animation.slideOutHorizontally
 import androidx.compose.animation.slideInVertically
 import androidx.compose.animation.slideOutVertically
 import androidx.compose.foundation.Canvas
+import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -22,6 +23,7 @@ import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.widthIn
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
@@ -37,71 +39,64 @@ import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.graphics.StrokeJoin
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import kotlinx.coroutines.delay
-import kotlin.random.Random
-import kotlin.time.Duration.Companion.milliseconds
 
-/**
- * Supported toast types.
- */
 enum class ToastType {
-    INFO, ERROR, SUCCESS
+    INFO,
+    SUCCESS,
+    WARNING,
+    ERROR
 }
 
-/**
- * Data model for holding toast content.
- */
 data class ToastData(
-    val id: Long = Random.nextLong(),
+    val id: Long = 0L,
     val type: ToastType,
     val title: String,
     val message: String
 )
 
-/**
- * Composable container that hosts the Toast notifications and animates them
- * smoothly from the bottom center of the screen when [visible] is true.
- * Automatically respects IME keyboard padding and navigation bars.
- *
- * @param visible If true, the toast is visible.
- * @param type The type of toast (INFO, ERROR, SUCCESS).
- * @param title The bold title string.
- * @param message The details body string.
- * @param onDismiss Callback invoked when the user dismisses the toast.
- * @param modifier Layout modifier.
- */
 @Composable
 fun ToastHost(
     visible: Boolean,
     type: ToastType,
-    title: String,
+    title: Any,
     message: String,
     onDismiss: () -> Unit,
     modifier: Modifier = Modifier
 ) {
-    LaunchedEffect(visible, message) {
+    LaunchedEffect(visible, type, title, message) {
         if (visible) {
-            delay(3_500.milliseconds)
+            delay(3500)
             onDismiss()
         }
     }
+
     Box(
         modifier = modifier
             .fillMaxSize()
-            .padding(horizontal = 20.dp, vertical = 20.dp)
+            .padding(horizontal = 20.dp)
             .navigationBarsPadding()
             .imePadding(),
         contentAlignment = Alignment.BottomCenter
     ) {
         AnimatedVisibility(
             visible = visible,
-            enter = slideInVertically(initialOffsetY = { it }) + fadeIn(),
-            exit = slideOutVertically(targetOffsetY = { it }) + fadeOut()
+            enter = slideInVertically(
+                initialOffsetY = { it }
+            ) + fadeIn(),
+            exit = slideOutVertically(
+                targetOffsetY = { it }
+            ) + fadeOut()
         ) {
             ToastCard(
-                toast = ToastData(type = type, title = title, message = message),
+                toast = ToastData(
+                    type = type,
+                    title = title as String,
+                    message = message
+                ),
                 onDismiss = onDismiss
             )
         }
@@ -114,122 +109,293 @@ fun ToastCard(
     onDismiss: () -> Unit,
     modifier: Modifier = Modifier
 ) {
+    val accentColor: Color
+    val backgroundColor: Color
+    val borderColor: Color
+
+    when (toast.type) {
+        ToastType.SUCCESS -> {
+            accentColor = Color(0xFF4DCE78)
+            backgroundColor = Color(0xFFF0F9F2)
+            borderColor = Color(0xFF4ADE80)
+        }
+
+        ToastType.INFO -> {
+            accentColor = Color(0xFF378BE5)
+            backgroundColor = Color(0xFFEDF5FF)
+            borderColor = Color(0xFF378BE5)
+        }
+
+        ToastType.WARNING -> {
+            accentColor = Color(0xFFF4BF22)
+            backgroundColor = Color(0xFFFFFAE9)
+            borderColor = Color(0xFFEFC52A)
+        }
+
+        ToastType.ERROR -> {
+            accentColor = Color(0xFFED5C60)
+            backgroundColor = Color(0xFFFFF0EE)
+            borderColor = Color(0xFFF16A6A)
+        }
+    }
+
     Surface(
         modifier = modifier
             .fillMaxWidth()
-            .widthIn(max = 420.dp)
-            .shadow(12.dp, RoundedCornerShape(16.dp)),
+            .widthIn(max = 560.dp)
+            .shadow(
+                elevation = 2.dp,
+                shape = RoundedCornerShape(16.dp)
+            )
+            .border(
+                width = 1.2.dp,
+                color = borderColor,
+                shape = RoundedCornerShape(16.dp)
+            ),
         shape = RoundedCornerShape(16.dp),
-        color = Color(0xFF0F172A) // Slate-900 dark background
+        color = backgroundColor,
+        tonalElevation = 0.dp
     ) {
         Row(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(16.dp),
-            verticalAlignment = Alignment.Top,
+                .padding(
+                    start = 16.dp,
+                    end = 10.dp,
+                    top = 16.dp,
+                    bottom = 16.dp
+                ),
+            verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.spacedBy(12.dp)
         ) {
-            // Self-contained custom Canvas vector icon
-            ToastIcon(type = toast.type, modifier = Modifier.padding(top = 2.dp))
+            ToastIcon(
+                type = toast.type,
+                modifier = Modifier.size(44.dp),
+                accentColor = accentColor
+            )
 
-            Column(modifier = Modifier.weight(1f)) {
-                Text(
-                    text = toast.title,
-                    color = Color.White,
-                    fontSize = 15.sp,
-                    fontWeight = FontWeight.Bold
-                )
-                Spacer(modifier = Modifier.height(4.dp))
+            Column(
+                modifier = Modifier.weight(1f),
+                verticalArrangement = Arrangement.spacedBy(4.dp)
+            ) {
                 Text(
                     text = toast.message,
-                    color = Color(0xFF94A3B8), // Slate-400
-                    fontSize = 13.sp,
-                    lineHeight = 18.sp
+                    color = Color(0xFF666666),
+                    fontSize = 12.sp,
                 )
             }
 
-            // Close button (X) drawn using Canvas
-            Canvas(
-                modifier = Modifier
-                    .size(18.dp)
-                    .clickable { onDismiss() }
-                    .padding(4.dp)
-            ) {
-                drawLine(
-                    color = Color(0xFF64748B), // Slate-500
-                    start = Offset(0f, 0f),
-                    end = Offset(size.width, size.height),
-                    strokeWidth = 2.dp.toPx(),
-                    cap = StrokeCap.Round
-                )
-                drawLine(
-                    color = Color(0xFF64748B),
-                    start = Offset(size.width, 0f),
-                    end = Offset(0f, size.height),
-                    strokeWidth = 2.dp.toPx(),
-                    cap = StrokeCap.Round
-                )
-            }
+//            Box(
+//                modifier = Modifier
+//                    .size(36.dp)
+//                    .clickable(onClick = onDismiss),
+//                contentAlignment = Alignment.Center
+//            ) {
+//                Canvas(
+//                    modifier = Modifier.size(18.dp)
+//                ) {
+//                    val inset = size.minDimension * 0.2f
+//
+//                    drawLine(
+//                        color = Color(0xFF777777),
+//                        start = Offset(inset, inset),
+//                        end = Offset(
+//                            size.width - inset,
+//                            size.height - inset
+//                        ),
+//                        strokeWidth = 1.8.dp.toPx(),
+//                        cap = StrokeCap.Round
+//                    )
+//
+//                    drawLine(
+//                        color = Color(0xFF777777),
+//                        start = Offset(
+//                            size.width - inset,
+//                            inset
+//                        ),
+//                        end = Offset(
+//                            inset,
+//                            size.height - inset
+//                        ),
+//                        strokeWidth = 1.8.dp.toPx(),
+//                        cap = StrokeCap.Round
+//                    )
+//                }
+//            }
         }
     }
 }
 
 @Composable
-fun ToastIcon(type: ToastType, modifier: Modifier = Modifier) {
-    Canvas(modifier = modifier.size(24.dp)) {
-        val color = when (type) {
-            ToastType.SUCCESS -> Color(0xFF10B981) // Emerald Green
-            ToastType.ERROR -> Color(0xFFEF4444)   // Rose Red
-            ToastType.INFO -> Color(0xFF3B82F6)    // Indigo Blue
-        }
-        
-        // Draw background accent circle
-        drawCircle(color = color, radius = size.minDimension / 2f)
+fun ToastIcon(
+    type: ToastType,
+    modifier: Modifier = Modifier,
+    accentColor: Color
+) {
+    Box(
+        modifier = modifier,
+        contentAlignment = Alignment.Center
+    ) {
+        Box(
+            modifier = Modifier
+                .fillMaxSize()
+                .background(
+                    color = accentColor,
+                    shape = CircleShape
+                ),
+            contentAlignment = Alignment.Center
+        ) {
+            Canvas(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .padding(12.dp)
+            ) {
+                val strokeWidth = 2.2.dp.toPx()
 
-        // Draw foreground details
-        when (type) {
-            ToastType.SUCCESS -> {
-                val checkPath = Path().apply {
-                    moveTo(size.width * 0.3f, size.height * 0.5f)
-                    lineTo(size.width * 0.45f, size.height * 0.65f)
-                    lineTo(size.width * 0.7f, size.height * 0.35f)
+                when (type) {
+                    ToastType.SUCCESS -> {
+                        val path = Path().apply {
+                            moveTo(
+                                size.width * 0.16f,
+                                size.height * 0.50f
+                            )
+                            lineTo(
+                                size.width * 0.40f,
+                                size.height * 0.74f
+                            )
+                            lineTo(
+                                size.width * 0.84f,
+                                size.height * 0.26f
+                            )
+                        }
+
+                        drawPath(
+                            path = path,
+                            color = Color.White,
+                            style = Stroke(
+                                width = strokeWidth,
+                                cap = StrokeCap.Round,
+                                join = StrokeJoin.Round
+                            )
+                        )
+                    }
+
+                    ToastType.ERROR -> {
+                        drawLine(
+                            color = Color.White,
+                            start = Offset(
+                                size.width * 0.28f,
+                                size.height * 0.28f
+                            ),
+                            end = Offset(
+                                size.width * 0.72f,
+                                size.height * 0.72f
+                            ),
+                            strokeWidth = strokeWidth,
+                            cap = StrokeCap.Round
+                        )
+
+                        drawLine(
+                            color = Color.White,
+                            start = Offset(
+                                size.width * 0.72f,
+                                size.height * 0.28f
+                            ),
+                            end = Offset(
+                                size.width * 0.28f,
+                                size.height * 0.72f
+                            ),
+                            strokeWidth = strokeWidth,
+                            cap = StrokeCap.Round
+                        )
+                    }
+
+                    ToastType.WARNING -> {
+                        drawLine(
+                            color = Color.White,
+                            start = Offset(
+                                size.width / 2f,
+                                size.height * 0.20f
+                            ),
+                            end = Offset(
+                                size.width / 2f,
+                                size.height * 0.56f
+                            ),
+                            strokeWidth = strokeWidth,
+                            cap = StrokeCap.Round
+                        )
+
+                        drawCircle(
+                            color = Color.White,
+                            radius = 1.5.dp.toPx(),
+                            center = Offset(
+                                size.width / 2f,
+                                size.height * 0.78f
+                            )
+                        )
+                    }
+
+                    ToastType.INFO -> {
+                        // Lightbulb-style information icon.
+                        val bulbPath = Path().apply {
+                            moveTo(
+                                size.width * 0.32f,
+                                size.height * 0.43f
+                            )
+                            cubicTo(
+                                size.width * 0.32f,
+                                size.height * 0.15f,
+                                size.width * 0.68f,
+                                size.height * 0.15f,
+                                size.width * 0.68f,
+                                size.height * 0.43f
+                            )
+                            lineTo(
+                                size.width * 0.60f,
+                                size.height * 0.58f
+                            )
+                            lineTo(
+                                size.width * 0.60f,
+                                size.height * 0.65f
+                            )
+                            lineTo(
+                                size.width * 0.40f,
+                                size.height * 0.65f
+                            )
+                            lineTo(
+                                size.width * 0.40f,
+                                size.height * 0.58f
+                            )
+                            close()
+                        }
+
+                        drawPath(
+                            path = bulbPath,
+                            color = Color.White,
+                            style = Stroke(
+                                width = strokeWidth,
+                                cap = StrokeCap.Round,
+                                join = StrokeJoin.Round
+                            )
+                        )
+
+                        drawLine(
+                            color = Color.White,
+                            start = Offset(
+                                size.width * 0.42f,
+                                size.height * 0.78f
+                            ),
+                            end = Offset(
+                                size.width * 0.58f,
+                                size.height * 0.78f
+                            ),
+                            strokeWidth = strokeWidth,
+                            cap = StrokeCap.Round
+                        )
+                    }
                 }
-                drawPath(
-                    path = checkPath,
-                    color = Color.White,
-                    style = Stroke(width = 2.dp.toPx(), cap = StrokeCap.Round, join = StrokeJoin.Round)
-                )
-            }
-            ToastType.ERROR -> {
-                drawLine(
-                    color = Color.White,
-                    start = Offset(size.width * 0.35f, size.height * 0.35f),
-                    end = Offset(size.width * 0.65f, size.height * 0.65f),
-                    strokeWidth = 2.dp.toPx(),
-                    cap = StrokeCap.Round
-                )
-                drawLine(
-                    color = Color.White,
-                    start = Offset(size.width * 0.65f, size.height * 0.35f),
-                    end = Offset(size.width * 0.35f, size.height * 0.65f),
-                    strokeWidth = 2.dp.toPx(),
-                    cap = StrokeCap.Round
-                )
-            }
-            ToastType.INFO -> {
-                drawCircle(
-                    color = Color.White, 
-                    radius = 1.5.dp.toPx(), 
-                    center = Offset(size.width * 0.5f, size.height * 0.32f)
-                )
-                drawLine(
-                    color = Color.White,
-                    start = Offset(size.width * 0.5f, size.height * 0.45f),
-                    end = Offset(size.width * 0.5f, size.height * 0.7f),
-                    strokeWidth = 2.dp.toPx(),
-                    cap = StrokeCap.Round
-                )
             }
         }
     }
 }
+

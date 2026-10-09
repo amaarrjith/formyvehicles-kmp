@@ -64,8 +64,14 @@ class SignUpViewModel(
                 return@launch
             }
             val selectedStateObj = currentState.states.find { it.name == currentState.selectedState }
-            val stateId = selectedStateObj?.id?.toString() ?: "1c9f59df-effe-4166-82e5-a2655f84c119"
-            val stateName = selectedStateObj?.name ?: currentState.selectedState ?: "Kerala"
+            if (selectedStateObj == null) {
+                showErrorToast("Please select a valid state.", "Sign Up")
+                _uiState.update { it.copy(isLoading = false, error = "Invalid State") }
+                return@launch
+            }
+            val stateId = selectedStateObj.id.toString()
+            val stateName = selectedStateObj.name
+
 
             val result = authRepository.register(
                 name = currentState.name.trim(),

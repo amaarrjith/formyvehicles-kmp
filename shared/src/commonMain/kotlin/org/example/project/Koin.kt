@@ -50,7 +50,7 @@ val appModule = module {
     factory { SignUpViewModel(get(), get()) }
     factory { OtpVerificationViewModel(get(), get()) }
     factory { HomeViewModel(get(), get()) }
-    factory { VehicleStatusViewModel(get()) }
+    factory { VehicleStatusViewModel(get(), get()) }
     factory { OthersViewModel(get()) }
     factory { PrivacyPolicyViewModel(get()) }
 }

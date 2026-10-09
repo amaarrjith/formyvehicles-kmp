@@ -12,6 +12,7 @@ import org.example.project.network.ApiEndpoints
 import org.example.project.network.NetworkResult
 import org.example.project.network.jsonBody
 import org.example.project.network.safeApiCall
+import org.example.project.data.model.UserResponse
 
 class UserApiServiceImpl(
     private val httpClient: HttpClient
@@ -20,7 +21,7 @@ class UserApiServiceImpl(
         httpClient.get(ApiEndpoints.GET_STATES)
     }
 
-    override suspend fun getUser(): NetworkResult<UserDto> = safeApiCall {
+    override suspend fun getUser(): NetworkResult<UserResponse> = safeApiCall {
         httpClient.get(ApiEndpoints.USER)
     }
 

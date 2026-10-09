@@ -8,6 +8,7 @@ import org.example.project.data.model.UserVehicle
 import org.example.project.data.remote.api.UserApiService
 import org.example.project.domain.repository.UserRepository
 import org.example.project.network.NetworkResult
+import org.example.project.data.model.UserResponse
 
 class UserRepositoryImpl(
     private val userApiService: UserApiService
@@ -16,7 +17,7 @@ class UserRepositoryImpl(
         return userApiService.getAllStates()
     }
 
-    override suspend fun getUser(): NetworkResult<UserDto> {
+    override suspend fun getUser(): NetworkResult<UserResponse> {
         return userApiService.getUser()
     }
 

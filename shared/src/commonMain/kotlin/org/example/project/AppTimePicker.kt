@@ -43,15 +43,22 @@ fun AppTimePicker(
                 TextButton(onClick = {
                     val hour = timePickerState.hour
                     val minute = timePickerState.minute
-                    val formatted = "${hour.toString().padStart(2, '0')}:${minute.toString().padStart(2, '0')}"
+                    val isPm = hour >= 12
+                    val displayHour = when {
+                        hour == 0 -> 12
+                        hour > 12 -> hour - 12
+                        else -> hour
+                    }
+                    val amPm = if (isPm) "PM" else "AM"
+                    val formatted = "${displayHour.toString().padStart(2, '0')}:${minute.toString().padStart(2, '0')} $amPm"
                     onTimeSelected(formatted)
                     showTimePicker = false
-                }) { Text("OK") }
+                }) { Text("OK", color = Color(0xFF6366F1), fontWeight = androidx.compose.ui.text.font.FontWeight.Bold) }
             },
             dismissButton = {
-                TextButton(onClick = { showTimePicker = false }) { Text("Cancel") }
+                TextButton(onClick = { showTimePicker = false }) { Text("Cancel", color = Color(0xFF64748B)) }
             },
-            title = { Text("Select Time") },
+            title = { Text("Select Alert Time", color = Color(0xFF1E293B), fontWeight = androidx.compose.ui.text.font.FontWeight.Bold) },
             text = { TimePicker(state = timePickerState) },
             containerColor = Color.White
         )

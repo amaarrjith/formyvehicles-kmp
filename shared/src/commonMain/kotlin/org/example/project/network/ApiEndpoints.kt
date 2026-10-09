@@ -6,7 +6,7 @@ object ApiEndpoints {
     const val SEND_OTP = "auth/send-otp"
     const val VERIFY_OTP = "auth/verify-otp"
     const val FORGOT_PASSWORD = "forgot-password"
-    const val REFRESH_TOKEN = "token/refresh"
+    const val REFRESH_TOKEN = "auth/refresh"
     const val LOGOUT = "auth/logout"
     const val GET_STATES = "states-list"
     const val USER = "user"
@@ -15,4 +15,7 @@ object ApiEndpoints {
     const val VEHICLE_BRANDS = "vehicle/vehicle-brands"
     const val VEHICLE_MODELS = "vehicle/vehicle-models"
     const val GENERIC_CONTENT = "generic/app-policy"
+    const val ADD_VEHICLE_INFO = "vehicle/add-info"
+    const val VEHICLE_INFO_TYPES = "vehicle/info-types"
+    const val VEHICLE_INFO_LIST = "vehicle/info-list"
 }

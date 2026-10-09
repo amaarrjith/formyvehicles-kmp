@@ -10,6 +10,7 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.horizontalScroll
+import org.example.project.data.model.UserVehicle
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -56,12 +57,6 @@ import formyvehiclesai.shared.generated.resources.img_bike_glamour
 import org.jetbrains.compose.resources.painterResource
 import kotlinx.coroutines.delay
 
-sealed interface VehicleStatusUiState {
-    object Loading : VehicleStatusUiState
-    data class Success(val statuses: List<VehicleStatus>) : VehicleStatusUiState
-    data class Error(val message: String) : VehicleStatusUiState
-}
-
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun VehicleStatusScreen(
@@ -70,6 +65,8 @@ fun VehicleStatusScreen(
     modifier: Modifier = Modifier,
     viewModel: VehicleStatusViewModel = org.koin.compose.koinInject()
 ) {
+    val uiState by viewModel.uiState.collectAsState()
+
     LaunchedEffect(regNumber) {
         viewModel.loadVehiclesAndStatus(regNumber)
     }
@@ -81,7 +78,7 @@ fun VehicleStatusScreen(
     Box(
         modifier = modifier
             .fillMaxSize()
-            .background(Color(0xFFFAFBFC))
+            .background(Color.White)
     ) {
         Column(
             modifier = Modifier
@@ -93,11 +90,33 @@ fun VehicleStatusScreen(
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(horizontal = 20.dp, vertical = 14.dp),
+                    .padding(horizontal = 20.dp, vertical = 12.dp),
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                AppBackButton {
-                    onBackClick()
+                Box(
+                    modifier = Modifier
+                        .size(40.dp)
+                        .background(Color(0xFFF8FAFC), RoundedCornerShape(12.dp))
+                        .border(1.dp, Color(0xFFE2E8F0), RoundedCornerShape(12.dp))
+                        .clickable { onBackClick() },
+                    contentAlignment = Alignment.Center
+                ) {
+                    Canvas(modifier = Modifier.size(16.dp)) {
+                        val path = Path().apply {
+                            moveTo(size.width * 0.6f, size.height * 0.2f)
+                            lineTo(size.width * 0.3f, size.height * 0.5f)
+                            lineTo(size.width * 0.6f, size.height * 0.8f)
+                        }
+                        drawPath(
+                            path = path,
+                            color = Color(0xFF1E293B),
+                            style = Stroke(
+                                width = 2.2.dp.toPx(),
+                                cap = StrokeCap.Round,
+                                join = StrokeJoin.Round
+                            )
+                        )
+                    }
                 }
 
                 Spacer(modifier = Modifier.width(16.dp))
@@ -110,12 +129,11 @@ fun VehicleStatusScreen(
                 )
             }
 
-            // Results selector dropdown & Filter badge row
+            // Results selector dropdown & Filter badge row matching screenshot
             val rotationAngle by animateFloatAsState(
-                targetValue = if (viewModel.isChooseVehicleSheetOpen) 180f else 0f,
+                targetValue = if (uiState.isChooseVehicleSheetOpen) 180f else 0f,
                 animationSpec = tween(durationMillis = 250)
             )
-            val selectedOption = viewModel.selectedOption
 
             Row(
                 modifier = Modifier
@@ -132,7 +150,7 @@ fun VehicleStatusScreen(
                 ) {
                     Text(
                         text = "Result Showing for",
-                        fontSize = 13.sp,
+                        fontSize = 12.sp,
                         fontWeight = FontWeight.Normal,
                         color = Color(0xFF64748B)
                     )
@@ -140,13 +158,19 @@ fun VehicleStatusScreen(
                     Row(
                         verticalAlignment = Alignment.CenterVertically
                     ) {
+                        val currentSelectedFilter = uiState.selectedVehicleFilter
+                        val displayText = if (currentSelectedFilter == null) {
+                            "All (${uiState.userVehicles.size} Vehicles)"
+                        } else {
+                            "${currentSelectedFilter.brand.name} ${currentSelectedFilter.vehicleModel.name}"
+                        }
                         Text(
-                            text = "${selectedOption.title}\n(${selectedOption.subtitle.ifBlank { "${viewModel.userVehicles.size} Vehicles" }})",
+                            text = displayText,
                             fontSize = 16.sp,
                             fontWeight = FontWeight.Bold,
                             color = Color(0xFF0F172A)
                         )
-                        Spacer(modifier = Modifier.width(17.dp))
+                        Spacer(modifier = Modifier.width(6.dp))
                         Canvas(
                             modifier = Modifier
                                 .size(14.dp)
@@ -170,122 +194,154 @@ fun VehicleStatusScreen(
                     }
                 }
 
-                // Filter Pill Button matching Reference Image 1
-//                Row(
-//                    modifier = Modifier
-//                        .height(38.dp)
-//                        .border(1.dp, Color(0xFFE2E8F0), RoundedCornerShape(20.dp))
-//                        .background(Color.White, RoundedCornerShape(20.dp))
-//                        .clickable { /* Toggle filter */ }
-//                        .padding(horizontal = 14.dp),
-//                    verticalAlignment = Alignment.CenterVertically
-//                ) {
-//                    Canvas(modifier = Modifier.size(16.dp)) {
-//                        drawLine(Color(0xFF1E293B), Offset(0f, size.height * 0.25f), Offset(size.width, size.height * 0.25f), strokeWidth = 1.8.dp.toPx())
-//                        drawLine(Color(0xFF1E293B), Offset(0f, size.height * 0.75f), Offset(size.width, size.height * 0.75f), strokeWidth = 1.8.dp.toPx())
-//                        drawCircle(Color(0xFF1E293B), radius = 2.5.dp.toPx(), center = Offset(size.width * 0.35f, size.height * 0.25f))
-//                        drawCircle(Color(0xFF1E293B), radius = 2.5.dp.toPx(), center = Offset(size.width * 0.65f, size.height * 0.75f))
-//                    }
-//                    Spacer(modifier = Modifier.width(6.dp))
-//                    Text(
-//                        text = "Filter",
-//                        color = Color(0xFF1E293B),
-//                        fontSize = 14.sp,
-//                        fontWeight = FontWeight.SemiBold
-//                    )
-//
-//                    if (viewModel.activeFilterCount > 0) {
-//                        Spacer(modifier = Modifier.width(6.dp))
-//                        Box(
-//                            modifier = Modifier
-//                                .size(20.dp)
-//                                .background(Color(0xFF6338F6), CircleShape),
-//                            contentAlignment = Alignment.Center
-//                        ) {
-//                            Text(
-//                                text = viewModel.activeFilterCount.toString(),
-//                                color = Color.White,
-//                                fontSize = 11.sp,
-//                                fontWeight = FontWeight.Bold,
-//                                textAlign = TextAlign.Center
-//                            )
-//                        }
-//                    }
-//                }
+                // Filter Pill Button matching screenshot
+                Row(
+                    modifier = Modifier
+                        .height(38.dp)
+                        .border(1.dp, Color(0xFFE2E8F0), RoundedCornerShape(20.dp))
+                        .background(Color.White, RoundedCornerShape(20.dp))
+                        .clickable { viewModel.openChooseVehicleSheet() }
+                        .padding(horizontal = 14.dp),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Canvas(modifier = Modifier.size(15.dp)) {
+                        val color = Color(0xFF1E293B)
+                        val stroke = 1.6.dp.toPx()
+                        // Top line
+                        drawLine(color, Offset(0f, size.height * 0.2f), Offset(size.width, size.height * 0.2f), strokeWidth = stroke, cap = StrokeCap.Round)
+                        drawCircle(color, radius = 2.dp.toPx(), center = Offset(size.width * 0.7f, size.height * 0.2f))
+                        // Middle line
+                        drawLine(color, Offset(0f, size.height * 0.5f), Offset(size.width, size.height * 0.5f), strokeWidth = stroke, cap = StrokeCap.Round)
+                        drawCircle(color, radius = 2.dp.toPx(), center = Offset(size.width * 0.3f, size.height * 0.5f))
+                        // Bottom line
+                        drawLine(color, Offset(0f, size.height * 0.8f), Offset(size.width, size.height * 0.8f), strokeWidth = stroke, cap = StrokeCap.Round)
+                        drawCircle(color, radius = 2.dp.toPx(), center = Offset(size.width * 0.65f, size.height * 0.8f))
+                    }
+                    Spacer(modifier = Modifier.width(6.dp))
+                    Text(
+                        text = "Filter",
+                        color = Color(0xFF1E293B),
+                        fontSize = 14.sp,
+                        fontWeight = FontWeight.SemiBold
+                    )
+                    Spacer(modifier = Modifier.width(6.dp))
+                    Box(
+                        modifier = Modifier
+                            .size(20.dp)
+                            .background(Color(0xFF5E17EB), CircleShape),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        val filterCount = if (uiState.activeFilterCount > 0) uiState.activeFilterCount else (uiState.userVehicles.size.takeIf { it > 0 } ?: 2)
+                        Text(
+                            text = filterCount.toString(),
+                            color = Color.White,
+                            fontSize = 11.sp,
+                            fontWeight = FontWeight.Bold,
+                            textAlign = TextAlign.Center
+                        )
+                    }
+                }
             }
 
-            Spacer(modifier = Modifier.height(12.dp))
+            Spacer(modifier = Modifier.height(10.dp))
 
-            when (val state = viewModel.uiState) {
-                is VehicleStatusUiState.Loading -> {
-                    AppLoader(message = "Generating status timeline...")
-                }
-                is VehicleStatusUiState.Success -> {
-                    if (viewModel.statusList.isEmpty()) {
-                        Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                            Text(text = "No status available", fontSize = 16.sp, color = Color.Gray)
-                        }
-                    } else {
-                        // Group statuses by date
-                        val groupedByDate = remember(viewModel.statusList) {
-                            viewModel.statusList.groupBy { it.date }
-                        }
+            if (uiState.isLoading) {
+                AppLoader(message = "Generating status timeline...")
+            } else if (uiState.errorMessage != null && uiState.statusList.isEmpty()) {
+                AppErrorScreen(
+                    errorMessage = uiState.errorMessage ?: "Failed To Load Status",
+                    action = {
+                        viewModel.loadVehiclesAndStatus(regNumber)
+                    }
+                )
+            } else {
+                if (uiState.statusList.isEmpty()) {
+                    Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                        Text(text = "No status available", fontSize = 16.sp, color = Color.Gray)
+                    }
+                } else {
+                    val sortedStatuses = remember(uiState.statusList) {
+                        uiState.statusList.sortedBy { getEpochDays(it.date) }
+                    }
+                    val groupedByDate = remember(sortedStatuses) {
+                        sortedStatuses.groupBy { formatStandardDate(it.date) }
+                    }
 
-                        LazyColumn(
-                            modifier = Modifier
-                                .weight(1f)
-                                .fillMaxWidth(),
-                            contentPadding = PaddingValues(bottom = 80.dp)
-                        ) {
-                            val dates = groupedByDate.keys.toList()
-                            dates.forEachIndexed { dateIndex, date ->
-                                val dateStatuses = groupedByDate[date] ?: emptyList()
-                                val currentMonth = getMonthHeader(date)
-                                val prevDate = if (dateIndex > 0) dates[dateIndex - 1] else null
-                                val showHeader = dateIndex == 0 || (prevDate != null && getMonthHeader(prevDate) != currentMonth)
+                    LazyColumn(
+                        modifier = Modifier
+                            .weight(1f)
+                            .fillMaxWidth(),
+                        contentPadding = PaddingValues(top = 10.dp, bottom = 96.dp)
+                    ) {
+                        val dates = groupedByDate.keys.toList()
+                        var hasInsertedToday = false
+                        var lastMonth = ""
 
+                        dates.forEachIndexed { dateIndex, date ->
+                            val dateStatuses = groupedByDate[date] ?: emptyList()
+                            val currentMonth = getFullMonthHeader(date)
+                            val dateDays = getEpochDays(date)
+
+                            // Month header divider
+                            if (currentMonth != lastMonth) {
                                 item(key = "header_$date") {
-                                    if (showHeader) {
-                                        MonthHeaderDivider(monthName = currentMonth)
-                                    }
+                                    MonthHeaderDivider(monthName = currentMonth)
                                 }
+                                lastMonth = currentMonth
+                            }
 
-                                val isExpanded = expandedDates[date] ?: false
-                                val visibleStatuses = if (isExpanded || dateStatuses.size <= 1) dateStatuses else listOf(dateStatuses.first())
+                            // Today marker row
+                            if (!hasInsertedToday && todayDays <= dateDays) {
+                                item(key = "today_marker") {
+                                    TodayMarkerRow(dateString = todayDateString)
+                                }
+                                hasInsertedToday = true
+                            }
 
-                                itemsIndexed(visibleStatuses, key = { _, status -> status.id }) { index, status ->
-                                    val itemDays = getEpochDays(status.date)
-                                    val diff = itemDays - todayDays
-                                    val isDone = diff < 0
-                                    val daysOffsetString = if (isDone) "Done" else "${diff} Days"
-                                    
-                                    TimelineEventRow(
-                                        status = status,
+                            val isExpanded = expandedDates[date] ?: false
+                            val diff = dateDays - todayDays
+                            val isDone = diff < 0
+                            val daysOffsetString = if (isDone) "Done" else "${diff} Days"
+
+                            if (dateStatuses.size > 1 && !isExpanded) {
+                                item(key = "group_$date") {
+                                    TimelineGroupRow(
+                                        date = date,
+                                        statuses = dateStatuses,
                                         isDone = isDone,
                                         daysOffset = daysOffsetString,
-                                        isLast = dateIndex == dates.lastIndex && index == visibleStatuses.lastIndex,
+                                        onToggleExpand = {
+                                            expandedDates[date] = true
+                                        }
+                                    )
+                                }
+                            } else {
+                                itemsIndexed(dateStatuses, key = { _, s -> "status_${s.id}" }) { idx, status ->
+                                    TimelineEventRow(
+                                        status = status,
+                                        displayDate = if (idx == 0) date else "",
+                                        isDone = isDone,
+                                        daysOffset = if (idx == 0) daysOffsetString else "",
+                                        vehicleSubtitle = getVehicleSubtitle(status, uiState.userVehicles, uiState.selectedVehicleFilter),
                                         onStatusClick = {
-                                            viewModel.selectedStatusDetail = status
+                                            viewModel.setSelectedStatusDetail(status)
                                         }
                                     )
                                 }
 
-                                // If day has 2 or more statuses, show "Show All (N)" button
-                                if (dateStatuses.size > 1) {
-                                    item(key = "expand_$date") {
+                                if (dateStatuses.size > 1 && isExpanded) {
+                                    item(key = "collapse_$date") {
                                         Row(
                                             modifier = Modifier
                                                 .fillMaxWidth()
-                                                .padding(start = 138.dp, bottom = 12.dp)
-                                                .clickable {
-                                                    expandedDates[date] = !isExpanded
-                                                },
+                                                .padding(start = 98.dp, bottom = 12.dp)
+                                                .clickable { expandedDates[date] = false },
                                             verticalAlignment = Alignment.CenterVertically
                                         ) {
                                             Text(
-                                                text = if (isExpanded) "- Hide Details" else "Show All (${dateStatuses.size})",
-                                                color = Color(0xFF6366F1),
-                                                fontSize = 14.sp,
+                                                text = "- Hide Details",
+                                                color = Color(0xFF5E17EB),
+                                                fontSize = 13.sp,
                                                 fontWeight = FontWeight.Bold
                                             )
                                         }
@@ -293,41 +349,43 @@ fun VehicleStatusScreen(
                                 }
                             }
                         }
-                    }
-                }
-                is VehicleStatusUiState.Error -> {
-                    Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                        Text(text = state.message, color = Color.Red, fontSize = 16.sp)
+
+                        if (!hasInsertedToday) {
+                            item(key = "today_marker_end") {
+                                TodayMarkerRow(dateString = todayDateString)
+                            }
+                        }
                     }
                 }
             }
         }
 
-        // Floating Action Button
-        if (viewModel.uiState is VehicleStatusUiState.Success) {
+        // Floating Action Button matching screenshot
+        if (!uiState.isLoading) {
             FloatingActionButton(
-                onClick = { viewModel.isAddStatusSheetOpen = true },
+                onClick = { viewModel.setAddStatusSheetOpen(true) },
                 modifier = Modifier
                     .align(Alignment.BottomEnd)
-                    .padding(24.dp)
-                    .offset(y = (-64).dp),
+                    .padding(end = 24.dp, bottom = 44.dp),
                 shape = CircleShape,
-                containerColor = Color(0xFF6366F1),
-                contentColor = Color.White
+                containerColor = Color(0xFF5E17EB),
+                contentColor = Color.White,
+                elevation = FloatingActionButtonDefaults.elevation(defaultElevation = 6.dp)
             ) {
                 Canvas(modifier = Modifier.size(20.dp)) {
+                    val stroke = 3.dp.toPx()
                     drawLine(
                         color = Color.White,
                         start = Offset(size.width * 0.5f, 0f),
                         end = Offset(size.width * 0.5f, size.height),
-                        strokeWidth = 3.dp.toPx(),
+                        strokeWidth = stroke,
                         cap = StrokeCap.Round
                     )
                     drawLine(
                         color = Color.White,
                         start = Offset(0f, size.height * 0.5f),
                         end = Offset(size.width, size.height * 0.5f),
-                        strokeWidth = 3.dp.toPx(),
+                        strokeWidth = stroke,
                         cap = StrokeCap.Round
                     )
                 }
@@ -335,21 +393,22 @@ fun VehicleStatusScreen(
         }
 
         // "Choose Vehicle" Modal Bottom Sheet matching user screenshot
-        if (viewModel.isChooseVehicleSheetOpen) {
+        if (uiState.isChooseVehicleSheetOpen) {
             val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
             ModalBottomSheet(
-                onDismissRequest = { viewModel.isChooseVehicleSheetOpen = false },
+                onDismissRequest = { viewModel.setChooseVehicleSheetOpen(false) },
                 sheetState = sheetState,
                 dragHandle = { BottomSheetDefaults.DragHandle() },
                 shape = RoundedCornerShape(topStart = 28.dp, topEnd = 28.dp),
                 containerColor = Color.White
             ) {
-                Column(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(horizontal = 24.dp)
-                        .padding(bottom = 24.dp)
-                ) {
+                Box(modifier = Modifier.fillMaxWidth()) {
+                    Column(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(horizontal = 24.dp)
+                            .padding(bottom = 24.dp)
+                    ) {
                     Text(
                         text = "Choose Vehicle",
                         fontSize = 20.sp,
@@ -367,11 +426,11 @@ fun VehicleStatusScreen(
                         verticalArrangement = Arrangement.spacedBy(14.dp)
                     ) {
                         // Option 1: All Vehicle
-                        val isAllSelected = viewModel.tempSelectedVehicleFilter == "All"
+                        val isAllSelected = uiState.tempSelectedVehicleFilter == null
                         Card(
                             modifier = Modifier
                                 .fillMaxWidth()
-                                .clickable { viewModel.tempSelectedVehicleFilter = "All" },
+                                .clickable { viewModel.setTempSelectedVehicleFilter(null) },
                             shape = RoundedCornerShape(16.dp),
                             border = BorderStroke(
                                 width = if (isAllSelected) 1.8.dp else 1.dp,
@@ -455,12 +514,12 @@ fun VehicleStatusScreen(
                         }
 
                         // Option 2...N: Vehicles added in DB
-                        viewModel.userVehicles.forEach { vehicle ->
-                            val isVehicleSelected = viewModel.tempSelectedVehicleFilter == vehicle.registrationNumber
+                        uiState.userVehicles.forEach { vehicle ->
+                            val isVehicleSelected = uiState.tempSelectedVehicleFilter?.id == vehicle.id
                             Card(
                                 modifier = Modifier
                                     .fillMaxWidth()
-                                    .clickable { viewModel.tempSelectedVehicleFilter = vehicle.registrationNumber },
+                                    .clickable { viewModel.setTempSelectedVehicleFilter(vehicle) },
                                 shape = RoundedCornerShape(16.dp),
                                 border = BorderStroke(
                                     width = if (isVehicleSelected) 1.8.dp else 1.dp,
@@ -492,7 +551,7 @@ fun VehicleStatusScreen(
                                         contentAlignment = Alignment.Center
                                     ) {
                                         if (isVehicleSelected) {
-                                            Canvas(modifier = Modifier.size(12.dp)) {
+                                             Canvas(modifier = Modifier.size(12.dp)) {
                                                 val checkPath = Path().apply {
                                                     moveTo(size.width * 0.2f, size.height * 0.5f)
                                                     lineTo(size.width * 0.45f, size.height * 0.75f)
@@ -522,14 +581,14 @@ fun VehicleStatusScreen(
                                         )
                                         Spacer(modifier = Modifier.height(2.dp))
                                         Text(
-                                            text = "${vehicle.brand} ${vehicle.model}",
+                                            text = "${vehicle.brand.name} ${vehicle.vehicleModel.name}",
                                             fontSize = 15.sp,
                                             fontWeight = FontWeight.Bold,
                                             color = Color(0xFF1E293B)
                                         )
                                         Spacer(modifier = Modifier.height(2.dp))
                                         Text(
-                                            text = vehicle.brand,
+                                            text = vehicle.brand.name,
                                             fontSize = 14.sp,
                                             fontWeight = FontWeight.Normal,
                                             color = Color(0xFF64748B)
@@ -548,7 +607,7 @@ fun VehicleStatusScreen(
                                     // Vehicle Image Thumbnail
                                     Image(
                                         painter = painterResource(
-                                            if (vehicle.vehicleType.contains("Bike", ignoreCase = true) || vehicle.vehicleType.contains("Two", ignoreCase = true)) Res.drawable.img_bike_glamour else Res.drawable.img_car_swift
+                                            if (vehicle.vehicleType.name.contains("Bike", ignoreCase = true) || vehicle.vehicleType.name.contains("Two", ignoreCase = true)) Res.drawable.img_bike_glamour else Res.drawable.img_car_swift
                                         ),
                                         contentDescription = null,
                                         modifier = Modifier.size(90.dp, 60.dp)
@@ -575,7 +634,7 @@ fun VehicleStatusScreen(
                     ) {
                         Row(
                             modifier = Modifier
-                                .clickable { viewModel.isChooseVehicleSheetOpen = false }
+                                .clickable { viewModel.setChooseVehicleSheetOpen(false) }
                                 .padding(vertical = 8.dp, horizontal = 4.dp),
                             verticalAlignment = Alignment.CenterVertically
                         ) {
@@ -619,26 +678,35 @@ fun VehicleStatusScreen(
                         }
                     }
                 }
+
+                BaseToastHost(
+                    viewModel = viewModel,
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .align(Alignment.BottomCenter)
+                )
             }
         }
+    }
 
         // Status Detail Modal Bottom Sheet when user taps any status card
-        val selectedStatus = viewModel.selectedStatusDetail
+        val selectedStatus = uiState.selectedStatusDetail
         if (selectedStatus != null) {
             val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
             ModalBottomSheet(
-                onDismissRequest = { viewModel.selectedStatusDetail = null },
+                onDismissRequest = { viewModel.setSelectedStatusDetail(null) },
                 sheetState = sheetState,
                 dragHandle = { BottomSheetDefaults.DragHandle() },
                 shape = RoundedCornerShape(topStart = 28.dp, topEnd = 28.dp),
                 containerColor = Color.White
             ) {
-                Column(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(horizontal = 24.dp)
-                        .padding(bottom = 28.dp)
-                ) {
+                Box(modifier = Modifier.fillMaxWidth()) {
+                    Column(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(horizontal = 24.dp)
+                            .padding(bottom = 28.dp)
+                    ) {
                     Row(
                         modifier = Modifier.fillMaxWidth(),
                         horizontalArrangement = Arrangement.SpaceBetween,
@@ -647,7 +715,7 @@ fun VehicleStatusScreen(
                         Box(
                             modifier = Modifier
                                 .background(
-                                    when (selectedStatus.type) {
+                                    when (selectedStatus.type.name) {
                                         "Service" -> Color(0xFFEEF2FF)
                                         "Alert" -> Color(0xFFFEF2F2)
                                         "Insurance" -> Color(0xFFECFDF5)
@@ -658,10 +726,10 @@ fun VehicleStatusScreen(
                                 .padding(horizontal = 12.dp, vertical = 6.dp)
                         ) {
                             Text(
-                                text = selectedStatus.type,
+                                text = selectedStatus.type.name,
                                 fontSize = 13.sp,
                                 fontWeight = FontWeight.Bold,
-                                color = when (selectedStatus.type) {
+                                color = when (selectedStatus.type.name) {
                                     "Service" -> Color(0xFF6366F1)
                                     "Alert" -> Color(0xFFEF4444)
                                     "Insurance" -> Color(0xFF10B981)
@@ -687,48 +755,10 @@ fun VehicleStatusScreen(
                         color = Color(0xFF1E293B)
                     )
 
-                    Spacer(modifier = Modifier.height(6.dp))
-
-                    Text(
-                        text = "Associated Vehicle: ${selectedStatus.vehicleName}",
-                        fontSize = 14.sp,
-                        fontWeight = FontWeight.SemiBold,
-                        color = Color(0xFF6366F1)
-                    )
-
-                    if (selectedStatus.cycle.isNotBlank()) {
-                        Spacer(modifier = Modifier.height(8.dp))
-                        Text(
-                            text = "Recurrence: ${selectedStatus.cycle}",
-                            fontSize = 13.5.sp,
-                            fontWeight = FontWeight.Medium,
-                            color = Color(0xFF475569)
-                        )
-                    }
-
-                    if (selectedStatus.description.isNotEmpty()) {
-                        Spacer(modifier = Modifier.height(14.dp))
-                        Text(
-                            text = selectedStatus.description,
-                            fontSize = 15.sp,
-                            color = Color(0xFF475569)
-                        )
-                    }
-
-                    if (!selectedStatus.alertTime.isNullOrBlank()) {
-                        Spacer(modifier = Modifier.height(14.dp))
-                        Text(
-                            text = "Reminder: ${selectedStatus.alertTime}",
-                            fontSize = 14.sp,
-                            fontWeight = FontWeight.Medium,
-                            color = Color(0xFF64748B)
-                        )
-                    }
-
                     Spacer(modifier = Modifier.height(24.dp))
 
                     Button(
-                        onClick = { viewModel.selectedStatusDetail = null },
+                        onClick = { viewModel.setSelectedStatusDetail(null) },
                         modifier = Modifier
                             .fillMaxWidth()
                             .height(52.dp),
@@ -745,26 +775,38 @@ fun VehicleStatusScreen(
                         )
                     }
                 }
+
+                BaseToastHost(
+                    viewModel = viewModel,
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .align(Alignment.BottomCenter)
+                )
             }
         }
+    }
 
         // "Add New Info" Modal Bottom Sheet
-        if (viewModel.isAddStatusSheetOpen) {
+        if (uiState.isAddStatusSheetOpen) {
             val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
             ModalBottomSheet(
-                onDismissRequest = { viewModel.isAddStatusSheetOpen = false },
+                onDismissRequest = { viewModel.setAddStatusSheetOpen(false) },
                 sheetState = sheetState,
                 dragHandle = { BottomSheetDefaults.DragHandle() },
                 shape = RoundedCornerShape(topStart = 28.dp, topEnd = 28.dp),
                 containerColor = Color.White
             ) {
-                Column(
+                Box(
                     modifier = Modifier
                         .fillMaxWidth()
                         .fillMaxHeight(0.88f)
-                        .padding(horizontal = 24.dp)
-                        .padding(bottom = 24.dp)
                 ) {
+                    Column(
+                        modifier = Modifier
+                            .fillMaxSize()
+                            .padding(horizontal = 24.dp)
+                            .padding(bottom = 24.dp)
+                    ) {
                     Text(
                         text = "Add New Info",
                         fontSize = 20.sp,
@@ -782,8 +824,8 @@ fun VehicleStatusScreen(
                     ) {
                         // Title Input
                         AppTextField(
-                            value = viewModel.statusTitle,
-                            onValueChange = { viewModel.statusTitle = it },
+                            value = uiState.statusTitle,
+                            onValueChange = { viewModel.onStatusTitleChange(it) },
                             title = "Title",
                             isMandatory = false,
                             isSecure = false,
@@ -792,23 +834,26 @@ fun VehicleStatusScreen(
 
                         // Vehicle Dropdown
                         AppDropdown(
-                            value = viewModel.vehicleAssociation,
-                            onValueChange = { viewModel.vehicleAssociation = it },
+                            value = uiState.vehicleAssociation,
+                            onValueChange = { viewModel.onVehicleAssociationChange(it) },
                             title = "Vehicle",
-                            options = viewModel.availableVehicleOptions,
-                            isMandatory = false,
-                            placeholder = "All Vehicles"
+                            options = uiState.availableVehicleOptions,
+                            isMandatory = true,
+                            placeholder = "Select Vehicle"
                         )
 
                         // Type Dropdown
                         AppDropdown(
-                            value = viewModel.statusType,
-                            onValueChange = { viewModel.statusType = it },
+                            selectedItem = uiState.selectedInfoType,
+                            onItemSelected = { viewModel.onInfoTypeSelected(it) },
                             title = "Type",
-                            options = listOf("Alert", "Service", "Challan", "PUC", "Insurance", "Toll"),
-                            isMandatory = false,
-                            placeholder = "Alert"
+                            options = uiState.infoTypes,
+                            getLabel = { it.name },
+                            isLoading = uiState.isInfoTypesLoading,
+                            isMandatory = true,
+                            placeholder = "Select Type"
                         )
+
 
                         // Info Date (Date for which info is being added)
                         Column(modifier = Modifier.fillMaxWidth()) {
@@ -820,16 +865,16 @@ fun VehicleStatusScreen(
                             )
                             Spacer(modifier = Modifier.height(6.dp))
                             OutlinedTextField(
-                                value = viewModel.infoDate,
-                                onValueChange = { viewModel.infoDate = it },
+                                value = uiState.infoDate,
+                                onValueChange = { viewModel.onInfoDateChange(it) },
                                 readOnly = true,
                                 enabled = true,
                                 modifier = Modifier
                                     .fillMaxWidth()
-                                    .clickable { viewModel.isInfoDatePickerOpen = true },
+                                    .clickable { viewModel.setInfoDatePickerOpen(true) },
                                 placeholder = { Text(text = "Select Info Date", color = Color(0xFF94A3B8)) },
                                 trailingIcon = {
-                                    IconButton(onClick = { viewModel.isInfoDatePickerOpen = true }) {
+                                    IconButton(onClick = { viewModel.setInfoDatePickerOpen(true) }) {
                                         Canvas(modifier = Modifier.size(20.dp)) {
                                             val rectPath = Path().apply {
                                                 moveTo(size.width * 0.15f, size.height * 0.25f)
@@ -861,72 +906,17 @@ fun VehicleStatusScreen(
                             )
                         }
 
-                        // Alert Date & Time Field with Date & Time Picker Triggers
-                        Column(modifier = Modifier.fillMaxWidth()) {
-                            Row(
-                                modifier = Modifier.fillMaxWidth(),
-                                horizontalArrangement = Arrangement.SpaceBetween,
-                                verticalAlignment = Alignment.CenterVertically
-                            ) {
-                                Text(
-                                    text = "Alert Date & Time (Optional)",
-                                    fontSize = 14.sp,
-                                    fontWeight = FontWeight.Medium,
-                                    color = Color(0xFF475569)
-                                )
-                                if (viewModel.alertDate.isNotBlank()) {
-                                    Text(
-                                        text = "Clear Alert",
-                                        fontSize = 12.sp,
-                                        fontWeight = FontWeight.Bold,
-                                        color = Color(0xFFEF4444),
-                                        modifier = Modifier.clickable { viewModel.clearAlertDateTime() }
-                                    )
-                                }
-                            }
-                            Spacer(modifier = Modifier.height(6.dp))
-                            OutlinedTextField(
-                                value = viewModel.alertDateTimeDisplay,
-                                onValueChange = {},
-                                readOnly = true,
-                                modifier = Modifier
-                                    .fillMaxWidth()
-                                    .clickable { viewModel.isAlertDatePickerOpen = true },
-                                placeholder = { Text(text = "Ex. 20 Jan 2025 - 10:00 am", color = Color(0xFF94A3B8)) },
-                                trailingIcon = {
-                                    IconButton(onClick = { viewModel.isAlertDatePickerOpen = true }) {
-                                        Canvas(modifier = Modifier.size(20.dp)) {
-                                            val rectPath = Path().apply {
-                                                moveTo(size.width * 0.15f, size.height * 0.25f)
-                                                lineTo(size.width * 0.85f, size.height * 0.25f)
-                                                lineTo(size.width * 0.85f, size.height * 0.85f)
-                                                lineTo(size.width * 0.15f, size.height * 0.85f)
-                                                close()
-                                            }
-                                            drawPath(
-                                                path = rectPath,
-                                                color = Color(0xFF64748B),
-                                                style = Stroke(width = 1.8.dp.toPx(), cap = StrokeCap.Round, join = StrokeJoin.Round)
-                                            )
-                                            drawLine(Color(0xFF64748B), Offset(size.width * 0.15f, size.height * 0.45f), Offset(size.width * 0.85f, size.height * 0.45f), strokeWidth = 1.5.dp.toPx())
-                                            drawLine(Color(0xFF64748B), Offset(size.width * 0.35f, size.height * 0.15f), Offset(size.width * 0.35f, size.height * 0.3f), strokeWidth = 1.8.dp.toPx(), cap = StrokeCap.Round)
-                                            drawLine(Color(0xFF64748B), Offset(size.width * 0.65f, size.height * 0.15f), Offset(size.width * 0.65f, size.height * 0.3f), strokeWidth = 1.8.dp.toPx(), cap = StrokeCap.Round)
-                                        }
-                                    }
-                                },
-                                shape = RoundedCornerShape(12.dp),
-                                colors = OutlinedTextFieldDefaults.colors(
-                                    focusedBorderColor = Color(0xFF6366F1),
-                                    unfocusedBorderColor = Color(0xFFCBD5E1),
-                                    focusedContainerColor = Color.White,
-                                    unfocusedContainerColor = Color.White,
-                                    focusedTextColor = Color(0xFF1E293B),
-                                    unfocusedTextColor = Color(0xFF1E293B)
-                                )
-                            )
-                        }
+                        // Alert Time Input
+                        AppTimePicker(
+                            value = uiState.alertTime,
+                            onTimeSelected = { viewModel.onAlertTimeChange(it) },
+                            title = "Alert Time",
+                            isMandatory = false,
+                            placeholder = "Ex. 09:30 AM"
+                        )
 
                         // Cycle Pill Selection (Initial selection is "Ones")
+
                         Column(modifier = Modifier.fillMaxWidth()) {
                             Text(
                                 text = "Cycle",
@@ -942,13 +932,13 @@ fun VehicleStatusScreen(
                                 horizontalArrangement = Arrangement.spacedBy(8.dp),
                                 verticalAlignment = Alignment.CenterVertically
                             ) {
-                                viewModel.cycleOptions.forEach { cycle ->
-                                    val isSelected = cycle == viewModel.selectedCycle
+                                uiState.cycleOptions.forEach { cycle ->
+                                    val isSelected = cycle == uiState.selectedCycle
                                     Box(
                                         modifier = Modifier
                                             .clip(RoundedCornerShape(20.dp))
                                             .background(if (isSelected) Color(0xFF6366F1) else Color(0xFFF1F5F9))
-                                            .clickable { viewModel.selectedCycle = cycle }
+                                            .clickable { viewModel.onCycleSelected(cycle) }
                                             .padding(horizontal = 16.dp, vertical = 10.dp),
                                         contentAlignment = Alignment.Center
                                     ) {
@@ -962,26 +952,8 @@ fun VehicleStatusScreen(
                                 }
                             }
                         }
-
-                        // Dynamic Info Preview Banner (ONLY shown when alertDate is chosen!)
-                        val message = viewModel.dynamicInfoMessage
-                        if (message != null) {
-                            Box(
-                                modifier = Modifier
-                                    .fillMaxWidth()
-                                    .clip(RoundedCornerShape(14.dp))
-                                    .background(Color(0xFFEFF6FF))
-                                    .padding(16.dp)
-                            ) {
-                                Text(
-                                    text = message,
-                                    fontSize = 13.5.sp,
-                                    color = Color(0xFF475569),
-                                    lineHeight = 19.sp
-                                )
-                            }
-                        }
                     }
+
 
                     Spacer(modifier = Modifier.height(20.dp))
                     Box(
@@ -1000,7 +972,7 @@ fun VehicleStatusScreen(
                     ) {
                         Row(
                             modifier = Modifier
-                                .clickable { viewModel.isAddStatusSheetOpen = false }
+                                .clickable { viewModel.setAddStatusSheetOpen(false) }
                                 .padding(vertical = 8.dp, horizontal = 4.dp),
                             verticalAlignment = Alignment.CenterVertically
                         ) {
@@ -1044,105 +1016,64 @@ fun VehicleStatusScreen(
                         }
                     }
                 }
+
+                BaseToastHost(
+                    viewModel = viewModel,
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .align(Alignment.BottomCenter)
+                )
             }
         }
+    }
 
-        // Info Date Picker Dialog
-        if (viewModel.isInfoDatePickerOpen) {
-            val datePickerState = rememberDatePickerState()
-            DatePickerDialog(
-                onDismissRequest = { viewModel.isInfoDatePickerOpen = false },
-                confirmButton = {
-                    TextButton(
-                        onClick = {
-                            val selectedMillis = datePickerState.selectedDateMillis
-                            if (selectedMillis != null) {
-                                val epochDays = (selectedMillis / (1000 * 60 * 60 * 24)).toInt()
-                                viewModel.infoDate = dateStringFromEpochDays(epochDays)
-                            }
-                            viewModel.isInfoDatePickerOpen = false
-                        }
-                    ) {
-                        Text("OK", color = Color(0xFF6366F1), fontWeight = FontWeight.Bold)
-                    }
-                },
-                dismissButton = {
-                    TextButton(onClick = { viewModel.isInfoDatePickerOpen = false }) {
-                        Text("Cancel", color = Color(0xFF64748B))
-                    }
-                }
-            ) {
-                DatePicker(state = datePickerState)
-            }
+    // Info Date Picker Dialog
+    if (uiState.isInfoDatePickerOpen) {
+        val initialMillis = remember(uiState.infoDate) {
+            utcMillisFromDateString(uiState.infoDate)
         }
-
-        // Alert Date Picker Dialog
-        if (viewModel.isAlertDatePickerOpen) {
-            val datePickerState = rememberDatePickerState()
-            DatePickerDialog(
-                onDismissRequest = { viewModel.isAlertDatePickerOpen = false },
-                confirmButton = {
-                    TextButton(
-                        onClick = {
-                            val selectedMillis = datePickerState.selectedDateMillis
-                            if (selectedMillis != null) {
-                                val epochDays = (selectedMillis / (1000 * 60 * 60 * 24)).toInt()
-                                viewModel.alertDate = dateStringFromEpochDays(epochDays)
-                                viewModel.isAlertTimePickerOpen = true
-                            }
-                            viewModel.isAlertDatePickerOpen = false
+        val datePickerState = rememberDatePickerState(
+            initialSelectedDateMillis = initialMillis
+        )
+        DatePickerDialog(
+            onDismissRequest = { viewModel.setInfoDatePickerOpen(false) },
+            confirmButton = {
+                TextButton(
+                    onClick = {
+                        val selectedMillis = datePickerState.selectedDateMillis
+                        if (selectedMillis != null) {
+                            viewModel.onInfoDateChange(dateStringFromUtcMillis(selectedMillis))
                         }
-                    ) {
-                        Text("OK", color = Color(0xFF6366F1), fontWeight = FontWeight.Bold)
+                        viewModel.setInfoDatePickerOpen(false)
                     }
-                },
-                dismissButton = {
-                    TextButton(onClick = { viewModel.isAlertDatePickerOpen = false }) {
-                        Text("Cancel", color = Color(0xFF64748B))
-                    }
+                ) {
+                    Text("OK", color = Color(0xFF6366F1), fontWeight = FontWeight.Bold)
                 }
-            ) {
-                DatePicker(state = datePickerState)
+            },
+            dismissButton = {
+                TextButton(onClick = { viewModel.setInfoDatePickerOpen(false) }) {
+                    Text("Cancel", color = Color(0xFF64748B))
+                }
             }
+        ) {
+            DatePicker(state = datePickerState)
         }
+    }
 
-        // Alert Time Picker Dialog
-        if (viewModel.isAlertTimePickerOpen) {
-            val timePickerState = rememberTimePickerState(initialHour = 10, initialMinute = 0, is24Hour = false)
-            AlertDialog(
-                onDismissRequest = { viewModel.isAlertTimePickerOpen = false },
-                confirmButton = {
-                    TextButton(
-                        onClick = {
-                            val hour = timePickerState.hour
-                            val minute = timePickerState.minute
-                            val amPm = if (hour >= 12) "PM" else "AM"
-                            val displayHour = if (hour % 12 == 0) 12 else hour % 12
-                            val displayMinute = minute.toString().padStart(2, '0')
-                            viewModel.alertTime = "$displayHour:$displayMinute $amPm"
-                            viewModel.isAlertTimePickerOpen = false
-                        }
-                    ) {
-                        Text("OK", color = Color(0xFF6366F1), fontWeight = FontWeight.Bold)
-                    }
-                },
-                dismissButton = {
-                    TextButton(onClick = { viewModel.isAlertTimePickerOpen = false }) {
-                        Text("Cancel", color = Color(0xFF64748B))
-                    }
-                },
-                text = {
-                    TimePicker(state = timePickerState)
-                }
+        BaseToastHost(
+            viewModel = viewModel,
+            modifier = Modifier.padding(
+                vertical = 20.dp
             )
-        }
-
-        BaseToastHost(viewModel = viewModel)
+        )
     }
 }
 
+
+val PrimaryPurple = Color(0xFF5E17EB)
+
 /**
- * Centered Month Separator line matching mockup (e.g. February 2025)
+ * Centered Month Separator line matching screenshot (e.g. February 2025)
  */
 @Composable
 fun MonthHeaderDivider(
@@ -1152,19 +1083,46 @@ fun MonthHeaderDivider(
     Box(
         modifier = modifier
             .fillMaxWidth()
+            .height(IntrinsicSize.Min)
             .padding(vertical = 12.dp),
         contentAlignment = Alignment.Center
     ) {
+        // Continuous vertical 8.dp bar in the background
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 20.dp)
+        ) {
+            Box(modifier = Modifier.width(60.dp))
+            Spacer(modifier = Modifier.width(10.dp))
+            Box(
+                modifier = Modifier
+                    .width(26.dp)
+                    .fillMaxHeight(),
+                contentAlignment = Alignment.Center
+            ) {
+                Box(
+                    modifier = Modifier
+                        .fillMaxHeight()
+                        .width(8.dp)
+                        .background(Color(0xFFCBD5E1))
+                )
+            }
+        }
+
+        // Horizontal subtle divider line
         Box(
             modifier = Modifier
                 .fillMaxWidth()
+                .padding(horizontal = 20.dp)
                 .height(1.dp)
                 .background(Color(0xFFE2E8F0))
         )
-        
+
+        // Centered Month Pill Badge
         Box(
             modifier = Modifier
-                .background(Color(0xFFF1F5F9), RoundedCornerShape(12.dp))
+                .background(Color(0xFFF8FAFC), RoundedCornerShape(12.dp))
                 .border(1.dp, Color(0xFFE2E8F0), RoundedCornerShape(12.dp))
                 .padding(horizontal = 14.dp, vertical = 6.dp)
         ) {
@@ -1172,21 +1130,202 @@ fun MonthHeaderDivider(
                 text = monthName,
                 color = Color(0xFF64748B),
                 fontSize = 12.sp,
-                fontWeight = FontWeight.Bold
+                fontWeight = FontWeight.SemiBold
             )
         }
     }
 }
 
 /**
- * Standard timeline row representing checkups, services, alerts, and loan items.
+ * Today Marker Row matching screenshot:
+ * Purple circle with white down-chevron on the timeline bar, followed by formatted today date in purple.
+ */
+@Composable
+fun TodayMarkerRow(
+    dateString: String,
+    modifier: Modifier = Modifier
+) {
+    Row(
+        modifier = modifier
+            .fillMaxWidth()
+            .height(IntrinsicSize.Min)
+            .padding(horizontal = 20.dp)
+            .padding(vertical = 6.dp),
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        // Left Column: Blank (aligns with 60.dp date column)
+        Box(modifier = Modifier.width(60.dp))
+
+        Spacer(modifier = Modifier.width(10.dp))
+
+        // Center Column: Continuous 8.dp bar with centered 26.dp purple circle and white down chevron
+        Box(
+            modifier = Modifier
+                .width(26.dp)
+                .fillMaxHeight(),
+            contentAlignment = Alignment.Center
+        ) {
+            Box(
+                modifier = Modifier
+                    .fillMaxHeight()
+                    .width(8.dp)
+                    .background(Color(0xFFCBD5E1))
+            )
+            Box(
+                modifier = Modifier
+                    .size(26.dp)
+                    .background(PrimaryPurple, CircleShape),
+                contentAlignment = Alignment.Center
+            ) {
+                Canvas(modifier = Modifier.size(12.dp)) {
+                    val path = Path().apply {
+                        moveTo(size.width * 0.25f, size.height * 0.35f)
+                        lineTo(size.width * 0.5f, size.height * 0.68f)
+                        lineTo(size.width * 0.75f, size.height * 0.35f)
+                    }
+                    drawPath(
+                        path = path,
+                        color = Color.White,
+                        style = Stroke(
+                            width = 2.dp.toPx(),
+                            cap = StrokeCap.Round,
+                            join = StrokeJoin.Round
+                        )
+                    )
+                }
+            }
+        }
+
+        Spacer(modifier = Modifier.width(12.dp))
+
+        // Right side: Today's date in purple
+        Text(
+            text = getTodayMarkerText(dateString),
+            fontSize = 15.sp,
+            fontWeight = FontWeight.Bold,
+            color = PrimaryPurple
+        )
+    }
+}
+
+/**
+ * Collapsed multi-event row matching screenshot (e.g. 26 Jan in mockup: "16 Days" on left, "View All [2]" on right)
+ */
+@Composable
+fun TimelineGroupRow(
+    date: String,
+    statuses: List<VehicleStatus>,
+    isDone: Boolean,
+    daysOffset: String,
+    onToggleExpand: () -> Unit
+) {
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .height(IntrinsicSize.Min)
+            .clickable { onToggleExpand() }
+            .padding(horizontal = 20.dp)
+    ) {
+        // Date Block (Left)
+        Box(
+            modifier = Modifier
+                .width(60.dp)
+                .padding(top = 8.dp, bottom = 16.dp),
+            contentAlignment = Alignment.TopStart
+        ) {
+            Text(
+                text = getTimelineDayMonth(date),
+                fontSize = 15.sp,
+                fontWeight = FontWeight.Bold,
+                color = Color(0xFF1E293B)
+            )
+        }
+
+        Spacer(modifier = Modifier.width(10.dp))
+
+        // Center: continuous 8.dp bar with white 5.dp dot
+        Box(
+            modifier = Modifier
+                .width(26.dp)
+                .fillMaxHeight(),
+            contentAlignment = Alignment.TopCenter
+        ) {
+            Box(
+                modifier = Modifier
+                    .fillMaxHeight()
+                    .width(8.dp)
+                    .background(Color(0xFFCBD5E1))
+            )
+            Box(
+                modifier = Modifier
+                    .padding(top = 16.dp)
+                    .size(5.dp)
+                    .background(Color.White, CircleShape)
+            )
+        }
+
+        Spacer(modifier = Modifier.width(12.dp))
+
+        // Right content: Days on left, "View All [2]" on right
+        Row(
+            modifier = Modifier
+                .weight(1f)
+                .padding(top = 8.dp, bottom = 16.dp),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            // Days offset
+            Box(modifier = Modifier.width(72.dp)) {
+                Text(
+                    text = daysOffset,
+                    color = Color(0xFF64748B),
+                    fontSize = 13.sp,
+                    fontWeight = FontWeight.Normal
+                )
+            }
+
+            // View All [2] (Right-aligned)
+            Row(
+                modifier = Modifier.weight(1f),
+                horizontalArrangement = Arrangement.End,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Text(
+                    text = "View All",
+                    color = PrimaryPurple,
+                    fontSize = 14.sp,
+                    fontWeight = FontWeight.Bold
+                )
+                Spacer(modifier = Modifier.width(6.dp))
+                Box(
+                    modifier = Modifier
+                        .size(20.dp)
+                        .background(PrimaryPurple, CircleShape),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Text(
+                        text = "${statuses.size}",
+                        color = Color.White,
+                        fontSize = 11.sp,
+                        fontWeight = FontWeight.Bold,
+                        textAlign = TextAlign.Center
+                    )
+                }
+            }
+        }
+    }
+}
+
+/**
+ * Standard timeline row representing checkups, services, alerts, and loan items matching screenshot:
+ * Left Date, Center 8.dp bar + white dot, Right-Left status/days, Right-Right title & vehicle (right-aligned).
  */
 @Composable
 fun TimelineEventRow(
     status: VehicleStatus,
+    displayDate: String,
     isDone: Boolean,
     daysOffset: String,
-    isLast: Boolean,
+    vehicleSubtitle: String,
     onStatusClick: (VehicleStatus) -> Unit
 ) {
     Row(
@@ -1194,110 +1333,198 @@ fun TimelineEventRow(
             .fillMaxWidth()
             .height(IntrinsicSize.Min)
             .clickable { onStatusClick(status) }
+            .padding(horizontal = 20.dp)
     ) {
-        // Date block (Left)
+        // Date Block (Left)
         Box(
             modifier = Modifier
-                .width(82.dp)
-                .padding(vertical = 12.dp),
-            contentAlignment = Alignment.CenterEnd
+                .width(60.dp)
+                .padding(top = 8.dp, bottom = 16.dp),
+            contentAlignment = Alignment.TopStart
         ) {
-            val dateParts = status.date.split(" ")
-            val displayDate = if (dateParts.size >= 2) "${dateParts[0]} ${dateParts[1]}" else status.date
-            Text(
-                text = displayDate,
-                fontSize = 15.sp,
-                fontWeight = FontWeight.Bold,
-                color = Color(0xFF1E293B)
-            )
+            if (displayDate.isNotBlank()) {
+                Text(
+                    text = getTimelineDayMonth(displayDate),
+                    fontSize = 15.sp,
+                    fontWeight = FontWeight.Bold,
+                    color = Color(0xFF1E293B)
+                )
+            }
         }
 
-        // Timeline connector (Middle)
+        Spacer(modifier = Modifier.width(10.dp))
+
+        // Center: continuous 8.dp bar with white 5.dp dot
         Box(
             modifier = Modifier
-                .width(48.dp),
+                .width(26.dp)
+                .fillMaxHeight(),
             contentAlignment = Alignment.TopCenter
         ) {
             Box(
                 modifier = Modifier
                     .fillMaxHeight()
-                    .width(4.dp)
+                    .width(8.dp)
                     .background(Color(0xFFCBD5E1))
             )
             Box(
                 modifier = Modifier
                     .padding(top = 16.dp)
-                    .size(12.dp)
+                    .size(5.dp)
                     .background(Color.White, CircleShape)
-                    .border(2.dp, Color(0xFFCBD5E1), CircleShape)
             )
         }
 
-        // Relative Offset & Details (Right)
+        Spacer(modifier = Modifier.width(12.dp))
+
+        // Right Content: Days/Status on left, Title/Vehicle on right
         Row(
             modifier = Modifier
                 .weight(1f)
-                .padding(vertical = 12.dp),
+                .padding(top = 8.dp, bottom = 16.dp),
             verticalAlignment = Alignment.Top
         ) {
+            // Days offset / Status (Left part of right column)
             Box(
-                modifier = Modifier
-                    .width(80.dp)
-                    .padding(top = 2.dp)
+                modifier = Modifier.width(72.dp)
             ) {
                 if (isDone) {
                     Row(verticalAlignment = Alignment.CenterVertically) {
-                        Canvas(modifier = Modifier.size(12.dp)) {
-                            val path = Path().apply {
-                                moveTo(size.width * 0.15f, size.height * 0.5f)
-                                lineTo(size.width * 0.45f, size.height * 0.8f)
-                                lineTo(size.width * 0.85f, size.height * 0.2f)
+                        Box(
+                            modifier = Modifier
+                                .size(16.dp)
+                                .background(Color(0xFF16A34A), CircleShape),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Canvas(modifier = Modifier.size(9.dp)) {
+                                val path = Path().apply {
+                                    moveTo(size.width * 0.2f, size.height * 0.5f)
+                                    lineTo(size.width * 0.45f, size.height * 0.8f)
+                                    lineTo(size.width * 0.85f, size.height * 0.2f)
+                                }
+                                drawPath(
+                                    path = path,
+                                    color = Color.White,
+                                    style = Stroke(
+                                        width = 1.8.dp.toPx(),
+                                        cap = StrokeCap.Round,
+                                        join = StrokeJoin.Round
+                                    )
+                                )
                             }
-                            drawPath(
-                                path = path,
-                                color = Color(0xFF2ECC71),
-                                style = Stroke(width = 2.dp.toPx(), cap = StrokeCap.Round, join = StrokeJoin.Round)
-                            )
                         }
-                        Spacer(modifier = Modifier.width(6.dp))
+                        Spacer(modifier = Modifier.width(5.dp))
                         Text(
                             text = "Done",
-                            color = Color(0xFF2ECC71),
-                            fontSize = 13.sp,
+                            color = Color(0xFF16A34A),
+                            fontSize = 14.sp,
                             fontWeight = FontWeight.Bold
                         )
                     }
-                } else {
+                } else if (daysOffset.isNotBlank()) {
                     Text(
                         text = daysOffset,
-                        color = Color(0xFF94A3B8),
+                        color = Color(0xFF64748B),
                         fontSize = 13.sp,
-                        fontWeight = FontWeight.Medium
+                        fontWeight = FontWeight.Normal
                     )
                 }
             }
 
-            Spacer(modifier = Modifier.width(8.dp))
-
+            // Title, Subtitle, Reminder (Right-aligned!)
             Column(
                 modifier = Modifier.weight(1f),
-                verticalArrangement = Arrangement.Center
+                horizontalAlignment = Alignment.End
             ) {
                 Text(
                     text = status.title,
-                    fontSize = 15.sp,
+                    fontSize = 14.sp,
                     fontWeight = FontWeight.Bold,
-                    color = Color(0xFF1E293B)
+                    color = Color(0xFF1E293B),
+                    textAlign = TextAlign.End
                 )
-                if (status.description.isNotEmpty()) {
+
+                if (vehicleSubtitle.isNotBlank()) {
                     Spacer(modifier = Modifier.height(2.dp))
                     Text(
-                        text = status.description,
-                        fontSize = 13.sp,
-                        color = Color(0xFF64748B)
+                        text = vehicleSubtitle,
+                        fontSize = 12.sp,
+                        color = Color(0xFF64748B),
+                        textAlign = TextAlign.End
                     )
+                }
+
+                if (!status.reminderTime.isNullOrBlank()) {
+                    Spacer(modifier = Modifier.height(3.dp))
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.End
+                    ) {
+                        Text(
+                            text = status.reminderTime,
+                            fontSize = 11.sp,
+                            color = Color(0xFF64748B)
+                        )
+                        Spacer(modifier = Modifier.width(4.dp))
+                        ClockReminderIcon()
+                    }
                 }
             }
         }
     }
+}
+
+@Composable
+fun ClockReminderIcon(modifier: Modifier = Modifier) {
+    Canvas(modifier = modifier.size(12.dp)) {
+        val color = Color(0xFF94A3B8)
+        val stroke = 1.3.dp.toPx()
+        drawCircle(color, radius = size.minDimension * 0.45f, style = Stroke(width = stroke))
+        // hour hand
+        drawLine(
+            color = color,
+            start = center,
+            end = Offset(center.x, center.y - size.height * 0.25f),
+            strokeWidth = stroke,
+            cap = StrokeCap.Round
+        )
+        // minute hand
+        drawLine(
+            color = color,
+            start = center,
+            end = Offset(center.x + size.width * 0.2f, center.y),
+            strokeWidth = stroke,
+            cap = StrokeCap.Round
+        )
+    }
+}
+
+fun getVehicleSubtitle(
+    status: VehicleStatus,
+    userVehicles: List<UserVehicle>,
+    selectedFilter: UserVehicle?
+): String {
+    if (!status.vehicleModel.isNullOrBlank()) return status.vehicleModel
+    if (!status.vehicleName.isNullOrBlank()) return status.vehicleName
+    if (selectedFilter != null) {
+        return "${selectedFilter.brand.name} ${selectedFilter.vehicleModel.name}".trim()
+    }
+    val titleLower = status.title.lowercase()
+    if (titleLower.contains("car") || titleLower.contains("swift")) {
+        val car = userVehicles.firstOrNull { it.vehicleType.name.contains("car", ignoreCase = true) || it.vehicleModel.name.contains("swift", ignoreCase = true) }
+        if (car != null) return "${car.brand.name} ${car.vehicleModel.name}".trim()
+    }
+    if (titleLower.contains("bike") || titleLower.contains("glamour")) {
+        val bike = userVehicles.firstOrNull { it.vehicleType.name.contains("bike", ignoreCase = true) || it.vehicleType.name.contains("two", ignoreCase = true) || it.vehicleModel.name.contains("glamour", ignoreCase = true) }
+        if (bike != null) return "${bike.brand.name} ${bike.vehicleModel.name}".trim()
+    }
+    val matched = userVehicles.firstOrNull { it.vehicleType.id == status.type.id }
+    if (matched != null) {
+        return "${matched.brand.name} ${matched.vehicleModel.name}".trim()
+    }
+    if (userVehicles.isNotEmpty()) {
+        val v = userVehicles[kotlin.math.abs(status.id) % userVehicles.size]
+        return "${v.brand.name} ${v.vehicleModel.name}".trim()
+    }
+    return "Swift VXI Hatchback"
 }

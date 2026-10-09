@@ -98,11 +98,18 @@ data class ForgetPasswordResponse(
 )
 
 @Serializable
-data class UserDto(
+data class
+UserDto(
     val id: String? = null,
     val name: String? = null,
     @SerialName("country_code")
     val countryCode: String? = null,
     @SerialName("mobile_number")
     val mobileNumber: String? = null,
+)
+
+
+@Serializable
+data class UserResponse(
+    val user: UserDto
 )

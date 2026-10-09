@@ -100,6 +100,9 @@ fun BaseToastHost(
                 ToastType.ERROR -> "Error"
                 ToastType.SUCCESS -> "Success"
                 ToastType.INFO -> "Info"
+                else -> {
+                    "Error"
+                }
             }
         },
         message = viewModel.toastMessage.ifBlank { viewModel.errorMessage ?: "" },

@@ -40,6 +40,7 @@ import formyvehiclesai.shared.generated.resources.img_car_swift
 import formyvehiclesai.shared.generated.resources.img_bike_glamour
 import org.jetbrains.compose.resources.painterResource
 import androidx.compose.ui.platform.LocalFocusManager
+import androidx.lifecycle.viewmodel.compose.viewModel
 import kotlinx.coroutines.delay
 import org.example.project.data.model.UserVehicle
 import org.koin.compose.koinInject
@@ -58,41 +59,27 @@ fun HomeScreen(
 ) {
     val uiState by viewModel.uiState.collectAsState()
 
-    // Refresh user data every time this screen appears (handles logout+login with different user)
-    LaunchedEffect(Unit) {
-        viewModel.refreshUser()
-    }
-
     AppBackHandler(enabled = true) {
         // Do nothing on back gesture to prevent returning to previous screen
     }
     
     Box(modifier = modifier.fillMaxSize()) {
-        when {
-            uiState.isLoading -> {
-                AppLoader(message = "Fetching your vehicles...")
-            }
-            uiState.errorMessage != null -> {
-                Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                    Text(text = uiState.errorMessage ?: "", color = Color.Red, fontSize = 16.sp)
-                }
-            }
-            else -> {
-                HomeScreenContent(
-                    vehicles = uiState.vehicleList,
-                    userName = uiState.userName,
-                    onAddVehicleTrigger = { viewModel.setSheetOpen(true) },
-                    onDeleteVehicle = { vehicle ->
-                        viewModel.deleteVehicle(vehicle)
-                    },
-                    onVehicleClick = onVehicleClick,
-                    onProfileClick = onProfileClick,
-                    onNotificationClick = onNotificationClick,
-                    onViewAllClick = onViewAllClick
-                )
-            }
-        }
-
+        HomeScreenContent(
+            uiState = uiState,
+            vehicles = uiState.vehicleList,
+            userName = uiState.userName,
+            onRefresh = {
+                viewModel.refreshUser()
+            },
+            onAddVehicleTrigger = { viewModel.setSheetOpen(true) },
+            onDeleteVehicle = { vehicle ->
+                viewModel.deleteVehicle(vehicle)
+            },
+            onVehicleClick = onVehicleClick,
+            onProfileClick = onProfileClick,
+            onNotificationClick = onNotificationClick,
+            onViewAllClick = onViewAllClick
+        )
         // Modal Bottom Sheet with Drag Handle
         if (uiState.isSheetOpen) {
             val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
@@ -320,8 +307,10 @@ fun HomeScreen(
 
 @Composable
 fun HomeScreenContent(
+    uiState: HomeUiState,
     vehicles: List<UserVehicle>,
     userName: String,
+    onRefresh: () -> Unit,
     onAddVehicleTrigger: () -> Unit,
     onDeleteVehicle: (Vehicle) -> Unit,
     onVehicleClick: (Vehicle) -> Unit,
@@ -426,181 +415,195 @@ fun HomeScreenContent(
         }
 
         Spacer(modifier = Modifier.height(24.dp))
-        
-        // Premium Home Banner
-        Image(
-            painter = painterResource(Res.drawable.ic_home),
-            contentDescription = null,
-            modifier = Modifier
-                .fillMaxWidth()
-                .clip(RoundedCornerShape(16.dp)),
-            contentScale = ContentScale.FillWidth
-        )
-        
-        Spacer(modifier = Modifier.height(28.dp))
 
-        if (vehicles.isEmpty()) {
-            // Use common EmptyStateView
-            EmptyStateView(
-                icon = {
-                    Canvas(modifier = Modifier.size(110.dp)) {
-                        // Tree Outline
-                        val treePath = Path().apply {
-                            moveTo(size.width * 0.22f, size.height * 0.85f)
-                            lineTo(size.width * 0.22f, size.height * 0.6f)
-                            cubicTo(
-                                size.width * 0.05f, size.height * 0.55f,
-                                size.width * 0.05f, size.height * 0.35f,
-                                size.width * 0.22f, size.height * 0.35f
-                            )
-                            cubicTo(
-                                size.width * 0.25f, size.height * 0.2f,
-                                size.width * 0.4f, size.height * 0.2f,
-                                size.width * 0.42f, size.height * 0.35f
-                            )
-                            cubicTo(
-                                size.width * 0.55f, size.height * 0.35f,
-                                size.width * 0.55f, size.height * 0.55f,
-                                size.width * 0.22f, size.height * 0.6f
-                            )
-                        }
-                        drawPath(
-                            path = treePath,
-                            color = Color(0xFF94A3B8),
-                            style = Stroke(width = 1.5.dp.toPx(), cap = StrokeCap.Round)
-                        )
-
-                        // Garage Outline
-                        val garagePath = Path().apply {
-                            moveTo(size.width * 0.45f, size.height * 0.85f)
-                            lineTo(size.width * 0.45f, size.height * 0.48f)
-                            quadraticTo(size.width * 0.68f, size.height * 0.35f, size.width * 0.9f, size.height * 0.48f)
-                            lineTo(size.width * 0.9f, size.height * 0.85f)
-                            moveTo(size.width * 0.55f, size.height * 0.85f)
-                            lineTo(size.width * 0.55f, size.height * 0.58f)
-                            lineTo(size.width * 0.8f, size.height * 0.58f)
-                            lineTo(size.width * 0.8f, size.height * 0.85f)
-                        }
-                        drawPath(
-                            path = garagePath,
-                            color = Color(0xFF64748B),
-                            style = Stroke(width = 1.5.dp.toPx(), cap = StrokeCap.Round, join = StrokeJoin.Round)
-                        )
-
-                        // Base line
-                        drawLine(
-                            color = Color(0xFF64748B),
-                            start = Offset(size.width * 0.1f, size.height * 0.85f),
-                            end = Offset(size.width * 0.95f, size.height * 0.85f),
-                            strokeWidth = 1.5.dp.toPx(),
-                            cap = StrokeCap.Round
-                        )
+        when {
+            uiState.isLoading -> {
+                AppLoader()
+            }
+            uiState.errorMessage!= null -> {
+                AppErrorScreen(
+                    errorMessage = uiState.errorMessage,
+                    action = {
+                        onRefresh()
                     }
-                },
-                title = "No Vehicle Added Yet",
-                description = "This app's features work based on your added vehicles.\nPlease add your vehicle details first.",
-                modifier = Modifier.weight(1f),
-                actionButton = {
-                    Button(
-                        onClick = onAddVehicleTrigger,
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .height(56.dp)
-                            .padding(horizontal = 24.dp),
-                        shape = RoundedCornerShape(28.dp),
-                        border = BorderStroke(1.5.dp, Color(0xFF6366F1)),
-                        colors = ButtonDefaults.buttonColors(
-                            containerColor = Color.Transparent,
-                            contentColor = Color(0xFF6366F1)
-                        )
-                    ) {
-                        Text(
-                            text = "Add Your First Vehicles",
-                            fontSize = 16.sp,
-                            fontWeight = FontWeight.SemiBold,
-                            textAlign = TextAlign.Center,
-                            modifier = Modifier.fillMaxWidth()
-                        )
-                    }
-                }
-            )
-        } else {
-            // Vehicle listing view (Mockup Image 3)
-            Column(modifier = Modifier.fillMaxWidth().weight(1f)) {
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.SpaceBetween,
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    Text(
-                        text = "My Vehicles",
-                        fontSize = 18.sp,
-                        fontWeight = FontWeight.Bold,
-                        color = Color(0xFF1E293B)
-                    )
-                    
-                    Row(
-                        modifier = Modifier.clickable { onViewAllClick() },
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        Text(
-                            text = "View All (${vehicles.size})",
-                            fontSize = 14.sp,
-                            fontWeight = FontWeight.Bold,
-                            color = Color(0xFF6366F1)
-                        )
-                        Spacer(modifier = Modifier.width(4.dp))
-                        Canvas(modifier = Modifier.size(12.dp)) {
-                            val arrow = Path().apply {
-                                moveTo(size.width * 0.3f, size.height * 0.2f)
-                                lineTo(size.width * 0.7f, size.height * 0.5f)
-                                lineTo(size.width * 0.3f, size.height * 0.8f)
+                )
+            }
+            else -> {
+                // Premium Home Banner
+                Image(
+                    painter = painterResource(Res.drawable.ic_home),
+                    contentDescription = null,
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .clip(RoundedCornerShape(16.dp)),
+                    contentScale = ContentScale.FillWidth
+                )
+
+                Spacer(modifier = Modifier.height(28.dp))
+                if (vehicles.isEmpty()) {
+                    // Use common EmptyStateView
+                    EmptyStateView(
+                        icon = {
+                            Canvas(modifier = Modifier.size(110.dp)) {
+                                // Tree Outline
+                                val treePath = Path().apply {
+                                    moveTo(size.width * 0.22f, size.height * 0.85f)
+                                    lineTo(size.width * 0.22f, size.height * 0.6f)
+                                    cubicTo(
+                                        size.width * 0.05f, size.height * 0.55f,
+                                        size.width * 0.05f, size.height * 0.35f,
+                                        size.width * 0.22f, size.height * 0.35f
+                                    )
+                                    cubicTo(
+                                        size.width * 0.25f, size.height * 0.2f,
+                                        size.width * 0.4f, size.height * 0.2f,
+                                        size.width * 0.42f, size.height * 0.35f
+                                    )
+                                    cubicTo(
+                                        size.width * 0.55f, size.height * 0.35f,
+                                        size.width * 0.55f, size.height * 0.55f,
+                                        size.width * 0.22f, size.height * 0.6f
+                                    )
+                                }
+                                drawPath(
+                                    path = treePath,
+                                    color = Color(0xFF94A3B8),
+                                    style = Stroke(width = 1.5.dp.toPx(), cap = StrokeCap.Round)
+                                )
+
+                                // Garage Outline
+                                val garagePath = Path().apply {
+                                    moveTo(size.width * 0.45f, size.height * 0.85f)
+                                    lineTo(size.width * 0.45f, size.height * 0.48f)
+                                    quadraticTo(size.width * 0.68f, size.height * 0.35f, size.width * 0.9f, size.height * 0.48f)
+                                    lineTo(size.width * 0.9f, size.height * 0.85f)
+                                    moveTo(size.width * 0.55f, size.height * 0.85f)
+                                    lineTo(size.width * 0.55f, size.height * 0.58f)
+                                    lineTo(size.width * 0.8f, size.height * 0.58f)
+                                    lineTo(size.width * 0.8f, size.height * 0.85f)
+                                }
+                                drawPath(
+                                    path = garagePath,
+                                    color = Color(0xFF64748B),
+                                    style = Stroke(width = 1.5.dp.toPx(), cap = StrokeCap.Round, join = StrokeJoin.Round)
+                                )
+
+                                // Base line
+                                drawLine(
+                                    color = Color(0xFF64748B),
+                                    start = Offset(size.width * 0.1f, size.height * 0.85f),
+                                    end = Offset(size.width * 0.95f, size.height * 0.85f),
+                                    strokeWidth = 1.5.dp.toPx(),
+                                    cap = StrokeCap.Round
+                                )
                             }
-                            drawPath(
-                                path = arrow,
-                                color = Color(0xFF6366F1),
-                                style = Stroke(width = 2.dp.toPx(), cap = StrokeCap.Round, join = StrokeJoin.Round)
-                            )
+                        },
+                        title = "No Vehicle Added Yet",
+                        description = "This app's features work based on your added vehicles.\nPlease add your vehicle details first.",
+                        modifier = Modifier.weight(1f),
+                        actionButton = {
+                            Button(
+                                onClick = onAddVehicleTrigger,
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .height(56.dp)
+                                    .padding(horizontal = 24.dp),
+                                shape = RoundedCornerShape(28.dp),
+                                border = BorderStroke(1.5.dp, Color(0xFF6366F1)),
+                                colors = ButtonDefaults.buttonColors(
+                                    containerColor = Color.Transparent,
+                                    contentColor = Color(0xFF6366F1)
+                                )
+                            ) {
+                                Text(
+                                    text = "Add Your First Vehicles",
+                                    fontSize = 16.sp,
+                                    fontWeight = FontWeight.SemiBold,
+                                    textAlign = TextAlign.Center,
+                                    modifier = Modifier.fillMaxWidth()
+                                )
+                            }
                         }
-                    }
-                }
-
-                Spacer(modifier = Modifier.height(16.dp))
-
-                LazyColumn(
-                    modifier = Modifier.weight(1f),
-                    verticalArrangement = Arrangement.spacedBy(16.dp),
-                    contentPadding = PaddingValues(bottom = 16.dp)
-                ) {
-                    items(vehicles) { vehicle ->
-                        VehicleCard(
-                            vehicle = vehicle,
-                            onDeleteClick = {  },
-                            onVehicleClick = onVehicleClick
-                        )
-                    }
-
-                    // Add Vehicle button at the bottom of the list
-                    item {
+                    )
+                } else {
+                    // Vehicle listing view (Mockup Image 3)
+                    Column(modifier = Modifier.fillMaxWidth().weight(1f)) {
                         Row(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .clickable { onAddVehicleTrigger() }
-                                .padding(vertical = 12.dp),
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.SpaceBetween,
                             verticalAlignment = Alignment.CenterVertically
                         ) {
-                            // Plus ic_filter
-                            Image(
-                                painter = painterResource(Res.drawable.ic_add_vehicle),
-                                contentDescription = null
-                            )
-                            Spacer(modifier = Modifier.width(12.dp))
                             Text(
-                                text = "Add Vehicle",
-                                fontSize = 12.sp,
-                                fontWeight = FontWeight.SemiBold,
+                                text = "My Vehicles",
+                                fontSize = 18.sp,
+                                fontWeight = FontWeight.Bold,
                                 color = Color(0xFF1E293B)
                             )
+
+                            Row(
+                                modifier = Modifier.clickable { onViewAllClick() },
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                Text(
+                                    text = "View All (${vehicles.size})",
+                                    fontSize = 14.sp,
+                                    fontWeight = FontWeight.Bold,
+                                    color = Color(0xFF6366F1)
+                                )
+                                Spacer(modifier = Modifier.width(4.dp))
+                                Canvas(modifier = Modifier.size(12.dp)) {
+                                    val arrow = Path().apply {
+                                        moveTo(size.width * 0.3f, size.height * 0.2f)
+                                        lineTo(size.width * 0.7f, size.height * 0.5f)
+                                        lineTo(size.width * 0.3f, size.height * 0.8f)
+                                    }
+                                    drawPath(
+                                        path = arrow,
+                                        color = Color(0xFF6366F1),
+                                        style = Stroke(width = 2.dp.toPx(), cap = StrokeCap.Round, join = StrokeJoin.Round)
+                                    )
+                                }
+                            }
+                        }
+
+                        Spacer(modifier = Modifier.height(16.dp))
+
+                        LazyColumn(
+                            modifier = Modifier.weight(1f),
+                            verticalArrangement = Arrangement.spacedBy(16.dp),
+                            contentPadding = PaddingValues(bottom = 16.dp)
+                        ) {
+                            items(vehicles) { vehicle ->
+                                VehicleCard(
+                                    vehicle = vehicle,
+                                    onDeleteClick = {  },
+                                    onVehicleClick = onVehicleClick
+                                )
+                            }
+
+                            // Add Vehicle button at the bottom of the list
+                            item {
+                                Row(
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .clickable { onAddVehicleTrigger() }
+                                        .padding(vertical = 12.dp),
+                                    verticalAlignment = Alignment.CenterVertically
+                                ) {
+                                    // Plus ic_filter
+                                    Image(
+                                        painter = painterResource(Res.drawable.ic_add_vehicle),
+                                        contentDescription = null
+                                    )
+                                    Spacer(modifier = Modifier.width(12.dp))
+                                    Text(
+                                        text = "Add Vehicle",
+                                        fontSize = 12.sp,
+                                        fontWeight = FontWeight.SemiBold,
+                                        color = Color(0xFF1E293B)
+                                    )
+                                }
+                            }
                         }
                     }
                 }

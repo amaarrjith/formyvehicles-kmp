@@ -77,12 +77,14 @@ suspend inline fun <reified T> safeApiCall(
 
         if (hasError || !status.isSuccess()) {
             val errorCode = jsonObject?.get("errorCode")?.jsonPrimitive?.intOrNull ?: status.value
-            val message = backendMessage ?: when (status.value) {
-                401 -> "Unauthorized"
+            val message = when (status.value) {
                 404 -> "Requested endpoint not found"
-                422 -> "Validation failed"
-                in 500..599 -> "Server error (${status.value})"
-                else -> "Something went wrong"
+                else -> backendMessage ?: when (status.value) {
+                    401 -> "Unauthorized"
+                    422 -> "Validation failed"
+                    in 500..599 -> "Server error (${status.value})"
+                    else -> "Something went wrong"
+                }
             }
             return NetworkResult.Error(
                 message = message,
@@ -168,6 +170,10 @@ fun parseErrorMessage(e: Throwable): String {
         msg.contains("-1001") || msg.contains("timed out", ignoreCase = true) || e is io.ktor.client.plugins.HttpRequestTimeoutException -> {
             "Request timed out. Please try again."
         }
+        msg.contains("Connection refused", ignoreCase = true) ||
+                msg.contains("ConnectException", ignoreCase = true) -> {
+            "Unable to connect to the server.\nPlease try again later."
+        }
         else -> {
             if (msg.startsWith("Exception in http request:")) {
                 val localizedDescRegex = Regex("""NSLocalizedDescription=([^,]+)""")
@@ -197,5 +203,28 @@ fun mapErrorCodeToType(errorCode: Int?): ErrorType {
         422 -> ErrorType.VALIDATION
         in 500..599 -> ErrorType.SERVER
         else -> ErrorType.UNKNOWN
+    }
+}
+
+fun getErrorMessage(throwable: Throwable): String {
+    val errorText = generateSequence(throwable) { it.cause }
+        .mapNotNull { it.message }
+        .joinToString(" ")
+        .lowercase()
+
+    return when {
+        "connection refused" in errorText ||
+                "failed to connect" in errorText ->
+            "Unable to connect to the server. Please try again later."
+
+        "timeout" in errorText ->
+            "The request timed out. Please try again."
+
+        "unknownhost" in errorText ||
+                "no address associated" in errorText ->
+            "Please check your internet connection."
+
+        else ->
+            "Something went wrong. Please try again."
     }
 }

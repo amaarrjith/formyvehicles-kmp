@@ -1,27 +1,43 @@
 package org.example.project
 
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
+import androidx.compose.ui.Modifier
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
 import androidx.navigation.NavBackStackEntry
-import androidx.core.bundle.Bundle
+import kotlinx.coroutines.delay
+import org.example.project.manager.AppManager
+import org.example.project.manager.LogoutEvent
 
 @Composable
 fun AppNavigation() {
     val navController = rememberNavController()
+    var logoutToast by remember { mutableStateOf<LogoutEvent?>(null) }
+    var isToastVisible by remember { mutableStateOf(false) }
 
     androidx.compose.runtime.LaunchedEffect(Unit) {
-        org.example.project.manager.AppManager.logoutEvents.collect {
+        AppManager.logoutEvents.collect { event ->
             navController.navigate(AppScreens.WelcomeScreen.route) {
                 popUpTo(0) {
                     inclusive = true
                 }
                 launchSingleTop = true
             }
+            delay(350)
+            logoutToast = event
+            isToastVisible = true
+            AppManager.resetLogoutState()
         }
     }
+
+    Box(modifier = Modifier.fillMaxSize()) {
 
     NavHost(
         navController = navController,
@@ -130,14 +146,11 @@ fun AppNavigation() {
                     navController.navigate(AppScreens.vehicleStatus(vehicle.registrationNumber))
                 },
                 onLogoutClick = {
-                    setGuestUser(false)
-                    setUserLoggedIn(false)
-                    navController.navigate(AppScreens.WelcomeScreen.route) {
-                        popUpTo(AppScreens.Home.route) {
-                            inclusive = true
-                        }
-                        launchSingleTop = true
-                    }
+                    AppManager.logout(
+                        title = "Logged Out",
+                        message = "You have been logged out successfully.",
+                        type = ToastType.INFO
+                    )
                 },
                 onLoginClick = {
                     setGuestUser(false)
@@ -164,14 +177,11 @@ fun AppNavigation() {
         composable(AppScreens.Settings.route) {
             SettingsScreen(
                 onLogoutClick = {
-                    setGuestUser(false)
-                    setUserLoggedIn(false)
-                    navController.navigate(AppScreens.WelcomeScreen.route) {
-                        popUpTo(AppScreens.Home.route) {
-                            inclusive = true
-                        }
-                        launchSingleTop = true
-                    }
+                    AppManager.logout(
+                        title = "Logged Out",
+                        message = "You have been logged out successfully.",
+                        type = ToastType.INFO
+                    )
                 },
                 onBackClick = {
                     navController.popBackStack()
@@ -206,9 +216,7 @@ fun AppNavigation() {
                 }
             )
         ) { backStackEntry ->
-            val regNumber = backStackEntry.arguments?.getString("regNumber")
-                ?: backStackEntry.savedStateHandle.get<String>("regNumber")
-                ?: ""
+            val regNumber = backStackEntry.savedStateHandle.get<String>("regNumber") ?: ""
             VehicleStatusScreen(
                 regNumber = regNumber,
                 onBackClick = { navController.popBackStack() }
@@ -223,13 +231,20 @@ fun AppNavigation() {
                 }
             )
         ) { backStackEntry ->
-            val tab = backStackEntry.arguments?.getString("tab")
-                ?: backStackEntry.savedStateHandle.get<String>("tab")
-                ?: "privacy"
+            val tab = backStackEntry.savedStateHandle.get<String>("tab") ?: "privacy"
             PrivacyPolicyScreen(
                 initialTab = tab,
                 onBackClick = { navController.popBackStack() }
             )
         }
     }
+
+    ToastHost(
+        visible = isToastVisible,
+        type = logoutToast?.type ?: ToastType.WARNING,
+        title = logoutToast?.title ?: "Session Expired",
+        message = logoutToast?.message ?: "",
+        onDismiss = { isToastVisible = false }
+    )
+}
 }

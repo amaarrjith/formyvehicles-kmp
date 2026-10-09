@@ -79,42 +79,37 @@ class HomeViewModel(
 
     init {
         refreshUser()
-        getAvailableVehicleTypes()
-        getUserVehicles()
     }
 
     /**
      * Reload user name, vehicles, and vehicle types.
      */
     fun refreshUser() {
-        loadUserName()
         getUserDetails()
         getAvailableVehicleTypes()
-    }
-
-    private fun loadUserName() {
-        val persistedUser = getLoggedInUser()
-        if (isGuestUser()) {
-            _uiState.update { it.copy(userName = "Guest") }
-            return
-        }
-
-        val nameFromUser = persistedUser?.name?.takeIf { it.isNotBlank() }
-        val nameFromPrefs = getPersistedString("logged_in_user_name")?.takeIf { it.isNotBlank() }
-        val name = nameFromUser ?: nameFromPrefs ?: "User"
-        _uiState.update { it.copy(userName = name) }
+        getUserVehicles()
     }
 
     private fun getUserDetails() {
         viewModelScope.launch {
             when (val result = userRepository.getUser()) {
                 is NetworkResult.Success -> {
-                    val name = result.data.name?.takeIf { it.isNotBlank() }
+                    val name = result.data.user.name?.takeIf { it.isNotBlank() }
                     if (name != null) {
                         _uiState.update { it.copy(userName = name) }
                     }
                 }
-                is NetworkResult.Error -> {}
+                is NetworkResult.Error -> {
+                    val persistedUser = getLoggedInUser()
+                    if (isGuestUser()) {
+                        _uiState.update { it.copy(userName = "Guest") }
+                        return@launch
+                    }
+                    val nameFromUser = persistedUser?.name?.takeIf { it.isNotBlank() }
+                    val nameFromPrefs = getPersistedString("logged_in_user_name")?.takeIf { it.isNotBlank() }
+                    val name = nameFromUser ?: nameFromPrefs ?: ""
+                    _uiState.update { it.copy(userName = name) }
+                }
             }
         }
     }
