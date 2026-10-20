@@ -77,14 +77,12 @@ suspend inline fun <reified T> safeApiCall(
 
         if (hasError || !status.isSuccess()) {
             val errorCode = jsonObject?.get("errorCode")?.jsonPrimitive?.intOrNull ?: status.value
-            val message = when (status.value) {
+            val message = backendMessage ?: when (status.value) {
+                401 -> "Unauthorized"
                 404 -> "Requested endpoint not found"
-                else -> backendMessage ?: when (status.value) {
-                    401 -> "Unauthorized"
-                    422 -> "Validation failed"
-                    in 500..599 -> "Server error (${status.value})"
-                    else -> "Something went wrong"
-                }
+                422 -> "Validation failed"
+                in 500..599 -> "Server error (${status.value})"
+                else -> "Something went wrong"
             }
             return NetworkResult.Error(
                 message = message,

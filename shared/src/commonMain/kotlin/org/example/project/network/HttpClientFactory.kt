@@ -28,7 +28,7 @@ import org.example.project.data.settings.AppPreferences
 import org.example.project.data.settings.AuthPreferences
 import org.example.project.setPersistedString
 
-internal const val BASE_URL = "http://192.168.1.32:8000/api/"
+internal const val BASE_URL = "https://formyvehiclesai-api.onrender.com/api/"
 
 internal fun HttpClientConfig<*>.commonConfig(authPreferences: AuthPreferences, appPreferences: AppPreferences) {
     install(ContentNegotiation) {
