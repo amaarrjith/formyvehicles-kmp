@@ -30,14 +30,7 @@ object AppManager {
         println("[AppManager] User logged out: $message")
         setUserLoggedIn(false)
         setGuestUser(false)
-        AuthPreferences().clearTokens()
-        setPersistedString("logged_in_user", null)
-        setPersistedString("logged_in_user_id", null)
-        setPersistedString("logged_in_user_name", null)
-        setPersistedString("logged_in_user_mobile", null)
-        setPersistedString("logged_in_user_country_code", null)
-        setPersistedString("access_token", null)
-        setPersistedString("refresh_token", null)
+        AuthPreferences().clearAll()
         _logoutEvents.tryEmit(LogoutEvent(title = title, message = message, type = type))
     }
 

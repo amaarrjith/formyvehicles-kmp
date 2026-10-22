@@ -7,12 +7,14 @@ import androidx.lifecycle.viewModelScope
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
+import org.example.project.data.settings.AuthPreferences
 import org.example.project.domain.repository.AuthRepository
 import org.example.project.model.Country
 import org.example.project.network.NetworkResult
 
 class LoginViewModel(
-    private val authRepository: AuthRepository
+    private val authRepository: AuthRepository,
+    private val authPreferences: AuthPreferences = AuthPreferences()
 ) : BaseViewModel() {
     var mobileNumber by mutableStateOf("")
     var selectedCountry by mutableStateOf(Country("India", "IN", "🇮🇳", "+91"))
@@ -38,8 +40,21 @@ class LoginViewModel(
                 when(result) {
                     is NetworkResult.Success -> {
                         _uiState.value = LoginUiState(isLoading = false)
-                        val mobile = result.data.user?.mobileNumber?.takeIf { it.isNotBlank() } ?: mobileNumber.trim()
-                        setPersistedString("logged_in_user_mobile", mobile)
+                        val user = result.data.user
+                        if (user != null) {
+                            authPreferences.saveUser(user)
+                        }
+                        val accessToken = result.data.access
+                        val refreshToken = result.data.refresh
+                        if (!accessToken.isNullOrBlank()) {
+                            authPreferences.saveTokens(
+                                accessToken = accessToken,
+                                refreshToken = refreshToken ?: "",
+                                tokenExpiry = result.data.tokenExpiry ?: 3600
+                            )
+                        }
+                        val mobile = user?.mobileNumber?.takeIf { it.isNotBlank() } ?: mobileNumber.trim()
+                        authPreferences.saveUserMobile(mobile)
                         onSuccess(mobile)
                     }
                     is NetworkResult.Error -> {

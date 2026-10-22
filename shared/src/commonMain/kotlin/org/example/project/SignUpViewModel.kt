@@ -7,13 +7,15 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import org.example.project.data.model.State
+import org.example.project.data.settings.AuthPreferences
 import org.example.project.domain.repository.AuthRepository
 import org.example.project.domain.repository.UserRepository
 import org.example.project.network.NetworkResult
 
 class SignUpViewModel(
     private val authRepository: AuthRepository,
-    private val userRepository: UserRepository
+    private val userRepository: UserRepository,
+    private val authPreferences: AuthPreferences = AuthPreferences()
 ) : BaseViewModel() {
 
 
@@ -83,8 +85,12 @@ class SignUpViewModel(
             )
             when (result) {
                 is NetworkResult.Success -> {
-                    val mobile = result.data.user?.mobileNumber?.takeIf { it.isNotBlank() } ?: currentState.phone.trim()
-                    setPersistedString("logged_in_user_mobile", mobile)
+                    val user = result.data.user
+                    if (user != null) {
+                        authPreferences.saveUser(user)
+                    }
+                    val mobile = user?.mobileNumber?.takeIf { it.isNotBlank() } ?: currentState.phone.trim()
+                    authPreferences.saveUserMobile(mobile)
                     _uiState.update { it.copy(isLoading = false, isSuccess = true) }
                     onSuccess(mobile)
                 }

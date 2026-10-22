@@ -103,15 +103,9 @@ class OtpVerificationViewModel(
 
                     // Save user in UserDefaults / Preferences
                     if (user != null) {
-                        val json = Json { ignoreUnknownKeys = true }
-                        val userJson = json.encodeToString(UserDto.serializer(), user)
-                        setPersistedString("logged_in_user", userJson)
-                        user.id?.let { id -> setPersistedString("logged_in_user_id", id) }
-                        user.name?.let { name -> setPersistedString("logged_in_user_name", name) }
-                        setPersistedString("logged_in_user_mobile", user.mobileNumber ?: mobileNumber)
-                        user.countryCode?.let { cc -> setPersistedString("logged_in_user_country_code", cc) }
+                        authPreferences.saveUser(user)
                     } else {
-                        setPersistedString("logged_in_user_mobile", mobileNumber)
+                        authPreferences.saveUserMobile(mobileNumber)
                     }
 
                     // Set user as logged in and clear guest status

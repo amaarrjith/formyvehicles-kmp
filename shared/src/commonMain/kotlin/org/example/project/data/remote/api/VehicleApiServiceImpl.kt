@@ -28,13 +28,14 @@ class VehicleApiServiceImpl(
 
     override suspend fun getVehicleBrands(request: VehicleBrandRequest): NetworkResult<List<VehicleBrand>> = safeApiCall{
         httpClient.get(ApiEndpoints.VEHICLE_BRANDS) {
-            jsonBody(request)
+            parameter("vehicle_type_id", request.vehicleTypeId)
         }
     }
 
     override suspend fun getVehicleModels(request: VehicleModelRequest): NetworkResult<List<VehicleModel>> = safeApiCall{
         httpClient.get(ApiEndpoints.VEHICLE_MODELS) {
-            jsonBody(request)
+            parameter("vehicle_type_id", request.vehicleTypeId)
+            parameter("brand_id", request.vehicleBrandId)
         }
     }
 
@@ -50,7 +51,7 @@ class VehicleApiServiceImpl(
 
     override suspend fun getVehicleStatuses(request: VehicleStatusRequest): NetworkResult<VehicleStatusResponse> = safeApiCall {
         httpClient.get(ApiEndpoints.VEHICLE_INFO_LIST) {
-            jsonBody(request)
+            request.id?.let { parameter("id", it) }
         }
     }
 }

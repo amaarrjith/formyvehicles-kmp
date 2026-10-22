@@ -11,6 +11,7 @@ import org.example.project.data.model.UserVehicle
 import org.example.project.data.model.VehicleBrand
 import org.example.project.data.model.VehicleModel
 import org.example.project.data.model.VehicleType
+import org.example.project.data.settings.AuthPreferences
 import org.example.project.domain.repository.UserRepository
 import org.example.project.domain.repository.VehicleRepository
 import org.example.project.network.NetworkResult
@@ -71,20 +72,35 @@ data class HomeUiState(
 
 class HomeViewModel(
     private val userRepository: UserRepository,
-    private val vehicleRepository: VehicleRepository
+    private val vehicleRepository: VehicleRepository,
+    private val authPreferences: AuthPreferences = AuthPreferences()
 ) : BaseViewModel() {
 
-    private val _uiState = MutableStateFlow(HomeUiState())
+    private val _uiState = MutableStateFlow(
+        HomeUiState(
+            userName = resolveCachedUserName()
+        )
+    )
     val uiState: StateFlow<HomeUiState> = _uiState.asStateFlow()
 
     init {
         refreshUser()
     }
 
+    private fun resolveCachedUserName(): String {
+        if (isGuestUser()) return "Guest"
+        return authPreferences.getUserName()?.takeIf { it.isNotBlank() }
+            ?: getLoggedInUserName()
+    }
+
     /**
      * Reload user name, vehicles, and vehicle types.
      */
     fun refreshUser() {
+        val cached = resolveCachedUserName()
+        if (cached.isNotBlank()) {
+            _uiState.update { it.copy(userName = cached) }
+        }
         getUserDetails()
         getAvailableVehicleTypes()
         getUserVehicles()
@@ -94,21 +110,18 @@ class HomeViewModel(
         viewModelScope.launch {
             when (val result = userRepository.getUser()) {
                 is NetworkResult.Success -> {
-                    val name = result.data.user.name?.takeIf { it.isNotBlank() }
+                    val user = result.data.user
+                    authPreferences.saveUser(user)
+                    val name = user.name?.takeIf { it.isNotBlank() }
                     if (name != null) {
                         _uiState.update { it.copy(userName = name) }
                     }
                 }
                 is NetworkResult.Error -> {
-                    val persistedUser = getLoggedInUser()
-                    if (isGuestUser()) {
-                        _uiState.update { it.copy(userName = "Guest") }
-                        return@launch
+                    val fallback = resolveCachedUserName()
+                    if (fallback.isNotBlank()) {
+                        _uiState.update { it.copy(userName = fallback) }
                     }
-                    val nameFromUser = persistedUser?.name?.takeIf { it.isNotBlank() }
-                    val nameFromPrefs = getPersistedString("logged_in_user_name")?.takeIf { it.isNotBlank() }
-                    val name = nameFromUser ?: nameFromPrefs ?: ""
-                    _uiState.update { it.copy(userName = name) }
                 }
             }
         }

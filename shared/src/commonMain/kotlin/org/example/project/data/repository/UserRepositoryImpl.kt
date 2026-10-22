@@ -6,19 +6,25 @@ import org.example.project.data.model.State
 import org.example.project.data.model.UserDto
 import org.example.project.data.model.UserVehicle
 import org.example.project.data.remote.api.UserApiService
+import org.example.project.data.settings.AuthPreferences
 import org.example.project.domain.repository.UserRepository
 import org.example.project.network.NetworkResult
 import org.example.project.data.model.UserResponse
 
 class UserRepositoryImpl(
-    private val userApiService: UserApiService
+    private val userApiService: UserApiService,
+    private val authPreferences: AuthPreferences = AuthPreferences()
 ) : UserRepository {
     override suspend fun getAllStates(): NetworkResult<List<State>> {
         return userApiService.getAllStates()
     }
 
     override suspend fun getUser(): NetworkResult<UserResponse> {
-        return userApiService.getUser()
+        val result = userApiService.getUser()
+        if (result is NetworkResult.Success) {
+            authPreferences.saveUser(result.data.user)
+        }
+        return result
     }
 
     override suspend fun getUserVehicles(): NetworkResult<List<UserVehicle>> {

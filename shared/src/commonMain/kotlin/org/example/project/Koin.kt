@@ -37,7 +37,7 @@ val appModule = module {
     factory<AuthApiService> { AuthApiServiceImpl(get()) }
     factory<AuthRepository> { AuthRepositoryImpl(get()) }
     factory<UserApiService> { UserApiServiceImpl(get()) }
-    factory<UserRepository> { UserRepositoryImpl(get()) }
+    factory<UserRepository> { UserRepositoryImpl(get(), get()) }
     factory<VehicleApiService> { VehicleApiServiceImpl(get()) }
     factory<VehicleRepository> { VehicleRepositoryImpl(get()) }
     factory<GenericApiService> { GenericApiServiceImpl(get()) }
@@ -46,10 +46,10 @@ val appModule = module {
     single { CountryRepository(get()) }
     single { PhoneNumberValidator() }
     factory { PhoneNumberViewModel(get(), get()) }
-    factory { LoginViewModel(get()) }
-    factory { SignUpViewModel(get(), get()) }
+    factory { LoginViewModel(get(), get()) }
+    factory { SignUpViewModel(get(), get(), get()) }
     factory { OtpVerificationViewModel(get(), get()) }
-    factory { HomeViewModel(get(), get()) }
+    factory { HomeViewModel(get(), get(), get()) }
     factory { VehicleStatusViewModel(get(), get()) }
     factory { OthersViewModel(get()) }
     factory { PrivacyPolicyViewModel(get()) }
